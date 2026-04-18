@@ -242,10 +242,10 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await q.message.reply_text("📸 O'simlik yoki jonivor rasmini yuboring — AI 2 soniyada aniqlaydi.")
         return
     if data == "cmd:catalog":
-        await q.message.reply_text("📚 Katalog: https://togai.uz/app/catalog")
+        await q.message.reply_text("📚 Katalog: https://startup-seven-pied.vercel.app/app/catalog")
         return
     if data == "cmd:chat":
-        await q.message.reply_text("🤖 AI chat: https://togai.uz/app/chat")
+        await q.message.reply_text("🤖 AI chat: https://startup-seven-pied.vercel.app/app/chat")
         return
 
 
