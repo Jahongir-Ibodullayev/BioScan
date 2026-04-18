@@ -28,13 +28,30 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def app_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Open the web app directly."""
+    from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+    kb = InlineKeyboardMarkup([[
+        InlineKeyboardButton(
+            "🌿 Tog'AI ilovasini ochish",
+            web_app=WebAppInfo(url="https://startup-seven-pied.vercel.app"),
+        )
+    ]])
+    await update.message.reply_text(
+        "🌿 <b>Tog'AI — Tabiatingni kashf qil</b>\n\n"
+        "To'liq web-ilovadan foydalaning: AI skaner, Qizil kitob, xarita, namoz vaqti, chat…",
+        parse_mode=ParseMode.HTML,
+        reply_markup=kb,
+    )
+
+
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "🆘 <b>Yordam</b>\n\n"
         "• Rasm yuboring — AI turni aniqlaydi\n"
+        "• /app — web ilovani ochish\n"
         "• /start — menyu\n"
-        "• /katalog — barcha turlar\n"
-        "• /xavf — favqulodda yordam\n"
+        "• /sos — favqulodda yordam\n"
         "• 103 — tibbiy favqulodda\n",
         parse_mode=ParseMode.HTML,
     )
@@ -118,25 +135,38 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ------------------------------------------------------------------
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (update.message.text or "").strip()
+    base = "https://startup-seven-pied.vercel.app"
 
     MAP = {
-        "📷 Skaner": "Skanerni ishga tushirish uchun o'simlik yoki jonivor rasmini yuboring 📸",
-        "📚 Katalog": "Katalog ochish uchun veb-ilovani oching: https://togai.uz/app/catalog",
-        "🗺 Xarita": "Xarita: https://togai.uz/app/map — yaqin atrofdagi turlar va xavf zonalari",
-        "🤖 AI yordam": "AI chatni ochish uchun avval rasm yuboring — aniqlagandan keyin savol bering.",
-        "🏅 Herbariy": "Raqamli kolleksiyangiz: https://togai.uz/app/collection",
-        "⚠️ Hodisa xabar": "Xavfli hodisa xabar berish: https://togai.uz/app/report yoki /xavf",
+        "🌿 Tog'AI ilovasini ochish": f"🌿 Web ilova: {base}",
+        "📷 Skaner": f"📸 Skaner: rasm yuboring yoki web ilovada oching — {base}/app/scanner",
+        "📚 Katalog": f"📚 Katalog: {base}/app/catalog",
+        "🗺 Xarita": f"🗺 Xarita: {base}/app/map",
+        "🤖 AI yordam": "Savolingizni yozing — AI javob beradi. Yoki rasm yuboring 📷",
+        "🏅 Herbariy": f"🏅 Kolleksiyangiz: {base}/app/collection",
+        "⚠️ Hodisa xabar": f"⚠️ Hodisa: {base}/app/report yoki /sos",
     }
     if text in MAP:
         await update.message.reply_text(MAP[text])
         return
 
-    # Fallback — maybe user asked AI a question
-    await update.message.reply_text(
-        "🤖 Men hali bu savolga javob berishga o'rganyapman.\n"
-        "Rasm yuborsangiz aniqlay olaman 📷\n\n"
-        "Yoki /katalog ni bosib mavjud turlarni ko'ring."
-    )
+    # AI fallback — free-form questions answered by LLM
+    await context.bot.send_chat_action(update.effective_chat.id, ChatAction.TYPING)
+    try:
+        from togai.integrations import groq_chat
+        system = (
+            "Sen Tog'AI yordamchisisan — Markaziy Osiyo flora/faunasi bo'yicha ekspert biologist. "
+            "O'zbek tilida qisqa (3-5 jumla), aniq, amaliy javob ber. "
+            "Xavfli mavzularda ehtiyot choralarini ko'rsat. "
+            "Agar bilmasang 'Ma'lumot yetarli emas' deb yoz — taxmin qilma."
+        )
+        reply = groq_chat(text, system=system)
+        await update.message.reply_text(reply)
+    except Exception as e:
+        log.exception("AI chat error in bot")
+        await update.message.reply_text(
+            "🤖 Hozir javob bera olmadim. Qayta urinib ko'ring yoki rasm yuboring 📷"
+        )
 
 
 # ------------------------------------------------------------------

@@ -36,6 +36,8 @@ class Command(BaseCommand):
         # Commands
         app.add_handler(CommandHandler("start", handlers.start))
         app.add_handler(CommandHandler("help", handlers.help_cmd))
+        app.add_handler(CommandHandler("app", handlers.app_cmd))
+        app.add_handler(CommandHandler("sos", handlers.emergency))
         app.add_handler(CommandHandler("xavf", handlers.emergency))
         app.add_handler(CommandHandler("emergency", handlers.emergency))
 

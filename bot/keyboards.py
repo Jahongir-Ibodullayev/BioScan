@@ -1,11 +1,14 @@
 """Inline keyboards for Tog'AI Telegram bot."""
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
+
+WEB_APP_URL = "https://startup-seven-pied.vercel.app"
 
 
 def main_menu() -> ReplyKeyboardMarkup:
-    """Main persistent menu at bottom."""
+    """Main persistent menu at bottom. First row opens the web app inside Telegram."""
     return ReplyKeyboardMarkup(
         [
+            [KeyboardButton("🌿 Tog'AI ilovasini ochish", web_app=WebAppInfo(url=WEB_APP_URL))],
             [KeyboardButton("📷 Skaner"), KeyboardButton("📚 Katalog")],
             [KeyboardButton("🗺 Xarita"), KeyboardButton("🤖 AI yordam")],
             [KeyboardButton("🏅 Herbariy"), KeyboardButton("⚠️ Hodisa xabar")],
@@ -70,9 +73,9 @@ def back_to_card(slug: str) -> InlineKeyboardMarkup:
 def start_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
+            [InlineKeyboardButton("🌿 Tog'AI ilovasini ochish", web_app=WebAppInfo(url=WEB_APP_URL))],
             [InlineKeyboardButton("📷 Rasm yuboring", callback_data="hint:photo")],
             [InlineKeyboardButton("📚 Katalog ko'rish", callback_data="cmd:catalog")],
             [InlineKeyboardButton("🤖 AI yordamchi", callback_data="cmd:chat")],
-            [InlineKeyboardButton("🌐 Web ilovani ochish", url="https://togai.uz/app")],
         ]
     )
