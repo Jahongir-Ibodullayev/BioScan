@@ -22,6 +22,12 @@ def species_inline(slug: str, youtube_q: str, lat: float | None = None, lng: flo
     """Under-caption inline keyboard for a species card."""
     rows = [
         [
+            InlineKeyboardButton(
+                "🌿 To'liq web ilovada ochish",
+                web_app=WebAppInfo(url=f"{WEB_APP_URL}/app/search?q={youtube_q}"),
+            )
+        ],
+        [
             InlineKeyboardButton("📖 Umumiy", callback_data=f"tab:general:{slug}"),
             InlineKeyboardButton("✨ Foydasi", callback_data=f"tab:uses:{slug}"),
         ],
