@@ -31,31 +31,64 @@ def _compress_image(image_bytes: bytes, max_dim: int = 1024, quality: int = 82) 
 # ------------------------------------------------------------------
 # Groq Vision — rasmdan tur aniqlash + to'liq ma'lumot
 # ------------------------------------------------------------------
-GROQ_VISION_PROMPT = """Siz Markaziy Osiyo va dunyo flora/faunasi bo'yicha ekspert biologsiz.
-Foydalanuvchi rasmga oltan narsani aniqlang (o'simlik, daraxt, gul, hayvon, hasharot, qush, qoziqorin).
+GROQ_VISION_PROMPT = """Siz Markaziy Osiyo flora/faunasi bo'yicha ekspert biologsiz.
+Rasmdagi turni ANIQ aniqlang — o'xshash turlarni ARALASHTIRMANG.
 
-O'zbek tilida, faqat JSON qaytaring:
+=== MUHIM FARQLAR (tez-tez aralashtiriladigan o'simliklar) ===
+
+ISIRIQ (Peganum harmala) — alohida!
+  - Ingichka bargli o'simlik, bargi paporotniksimon ikki qayta patsimon
+  - OQ gul, 5 bargli, o'rtasida sariq chang
+  - Dumaloq, yashil-sariq meva (keyin jigarrang)
+  - Bo'yi 20-70 cm, tikansiz
+  - CO2 bilan yoqiladigan mashhur hazorasfand
+
+SHUVOQ (Artemisia) — ISIRIQ EMAS!
+  - Kulrang-yashil, paxta-may suvli barg
+  - Achchiq hid, kichik sariq gullar gajak
+  - Artemisia vulgaris — qora shuvoq
+
+SALSOLA (saltwort) — ISIRIQ EMAS!
+  - Shu'lali suvchil cho'l o'simligi
+  - Tikansimon, bargsiz bo'g'imli poya
+
+YANTOQ (Alhagi pseudalhagi)
+  - Tikanli buta, pushti-qizil gul
+  - Dukkakdoshlar oilasi, kich kichik yashil barglar
+
+NA'MATAK (Rosa canina) — tikanli buta, qizil meva
+ARCHA (Juniperus) — ignabargli daraxt, ko'k meva
+SAKSOVUL (Haloxylon) — tikansiz shoxli cho'l daraxti
+YALPIZ (Mentha) — xushbo'y, ya'lizli
+SEDANA (Nigella) — ko'k gul, qora urug'
+
+Avvaliga rasmdagi xususiyatlarni aniq kuzating, KEYIN nom bering.
+Ishonch past bo'lsa, confidence'ni past qo'ying (0.5-0.7).
+Taxmin qilish EMAS — kuzatishga asoslanib.
+
+O'zbek tilida, FAQAT JSON qaytaring:
 
 {
-  "found": true yoki false,
-  "name": "O'zbekcha nomi (yoki ingl. tarjima)",
-  "latin": "Ilmiy nom (Lotin)",
+  "found": true/false,
+  "name": "O'zbekcha nomi",
+  "latin": "Ilmiy nom",
   "category": "giyoh | daraxt | gul | jonivor | hasharot | qush | qoziqorin",
-  "confidence": 0.0-1.0 orasida son,
-  "summary": "1-2 jumla qisqa tavsif",
-  "description": "To'liq tavsif, 3-5 jumla",
+  "confidence": 0.0-1.0,
+  "key_features": "Rasmda ko'rgan asosiy xususiyatlar (qanday barglar, gullar, meva, rang...)",
+  "summary": "1-2 jumla tavsif",
+  "description": "3-5 jumla to'liq tavsif",
   "habitat": "Qayerda o'sadi/yashaydi",
-  "uses": "Foydasi: tibbiy, oshxona, sanoat, bog'dorchilik",
-  "warnings": "Xavfi bormi? Zaharlimi? Nima bilan ehtiyot bo'lish kerak",
-  "first_aid": "Agar xavfli bo'lsa, birinchi yordam. Aks holda bo'sh qoldiring",
-  "red_book": true/false — O'zbekiston Qizil kitobida yoki xalqaro himoyada,
-  "iucn_status": "LC/NT/VU/EN/CR/EW/EX/DD/NE (agar ma'lum bo'lsa)",
+  "uses": "Foydasi",
+  "warnings": "Xavfi (zaharli, allergen)",
+  "first_aid": "Xavf bo'lsa yordam, yo'q bo'lsa bo'sh",
+  "red_book": true/false,
+  "iucn_status": "LC/NT/VU/EN/CR/NE",
   "regions": "Qayerda tarqalgan",
   "similar_species": ["o'xshash tur 1", "o'xshash tur 2"]
 }
 
-Agar rasmda o'simlik/hayvon aniqlanmasa: {"found": false, "reason": "Izoh"}
-Faqat JSON! Boshqa matn yo'q."""
+Aniqlanmasa: {"found": false, "reason": "sabab"}
+Faqat JSON, boshqa matn yo'q."""
 
 
 def identify_species_from_image(image_bytes: bytes, mime: str = "image/jpeg") -> dict:
