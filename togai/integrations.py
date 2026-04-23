@@ -32,62 +32,88 @@ def _compress_image(image_bytes: bytes, max_dim: int = 1024, quality: int = 82) 
 # Groq Vision — rasmdan tur aniqlash + to'liq ma'lumot
 # ------------------------------------------------------------------
 GROQ_VISION_PROMPT = """Siz Markaziy Osiyo flora/faunasi bo'yicha ekspert biologsiz.
-Rasmdagi turni ANIQ aniqlang — o'xshash turlarni ARALASHTIRMANG.
 
-=== MUHIM FARQLAR (tez-tez aralashtiriladigan o'simliklar) ===
+=== QOIDALAR — BEPUL TAXMIN QILMA! ===
 
-ISIRIQ (Peganum harmala) — alohida!
-  - Ingichka bargli o'simlik, bargi paporotniksimon ikki qayta patsimon
-  - OQ gul, 5 bargli, o'rtasida sariq chang
-  - Dumaloq, yashil-sariq meva (keyin jigarrang)
-  - Bo'yi 20-70 cm, tikansiz
-  - CO2 bilan yoqiladigan mashhur hazorasfand
+1. Avval rasmdagi XUSUSIYATLARNI kuzating:
+   - Bargi (qanday shakl, qirrasi, rangi, kattaligi)
+   - Guli (bor-yo'qligi, rangi, shakli, bargi soni)
+   - Mevasi (bor-yo'q, qanday)
+   - Poya/shoxi (tikanlimi, shakli)
+   - Umumiy o'lchami
 
-SHUVOQ (Artemisia) — ISIRIQ EMAS!
-  - Kulrang-yashil, paxta-may suvli barg
-  - Achchiq hid, kichik sariq gullar gajak
-  - Artemisia vulgaris — qora shuvoq
+2. KEYIN xususiyatlarga mos keladigan turni tanlang.
 
-SALSOLA (saltwort) — ISIRIQ EMAS!
-  - Shu'lali suvchil cho'l o'simligi
-  - Tikansimon, bargsiz bo'g'imli poya
+3. Agar rasm PAST sifatli, noaniq, yoki xususiyatlar 100% mos kelmasa:
+   - Confidence PAST qo'ying (0.4-0.7)
+   - alternatives maydonida 2-3 boshqa variant bering
 
-YANTOQ (Alhagi pseudalhagi)
-  - Tikanli buta, pushti-qizil gul
-  - Dukkakdoshlar oilasi, kich kichik yashil barglar
+4. confidence = 0.9+ faqat xususiyatlar TO'LIQ mos kelganda!
+   - Noaniq bo'lsa 0.5-0.7 yozing — yolg'onchi yuqori qiymat bermang
+   - Umuman aniqlanmasa found=false
 
-NA'MATAK (Rosa canina) — tikanli buta, qizil meva
-ARCHA (Juniperus) — ignabargli daraxt, ko'k meva
-SAKSOVUL (Haloxylon) — tikansiz shoxli cho'l daraxti
-YALPIZ (Mentha) — xushbo'y, ya'lizli
-SEDANA (Nigella) — ko'k gul, qora urug'
+=== MUHIM FARQLAR (o'xshash o'simliklar) ===
 
-Avvaliga rasmdagi xususiyatlarni aniq kuzating, KEYIN nom bering.
-Ishonch past bo'lsa, confidence'ni past qo'ying (0.5-0.7).
-Taxmin qilish EMAS — kuzatishga asoslanib.
+ISIRIQ (Peganum harmala):
+  - Ingichka, ikki qayta patsimon barg
+  - OQ 5-bargli gul, sariq chang markazda
+  - Dumaloq yashil-sariq meva
+  - Bo'yi 20-70cm, tikansiz
+  - Tutatish/hazorasfand uchun mashhur
 
-O'zbek tilida, FAQAT JSON qaytaring:
+SHUVOQ (Artemisia):
+  - Kulrang-yashil PAXTASIMON barg (isiriq emas!)
+  - Achchiq hid, kichik sariq gullar gajakda
+  - ARALASHTIRMA isiriq bilan!
+
+SALSOLA (saltwort):
+  - Suvchil cho'l o'simligi, BARGSIZ bo'g'imli poya
+
+YANTOQ (Alhagi pseudalhagi):
+  - TIKANLI buta, PUSHTI-QIZIL gul
+  - Dukkakdoshlar oilasi, kichkina yashil barg
+
+NA'MATAK (Rosa canina):
+  - Tikanli buta, QIZIL MEVA (juda aniq belgi)
+
+ARCHA (Juniperus):
+  - IGNABARG daraxt, KO'K MEVA
+  - Hech qanday keng barg yo'q
+
+SAKSOVUL (Haloxylon):
+  - Tikansiz shoxli cho'l daraxti, bo'g'imli
+
+YALPIZ (Mentha):
+  - Tuxumsimon tishli barg, xushbo'y hid
+
+SEDANA (Nigella):
+  - KO'K/OQ chiroyli gul, ingichka baraglar, qora urug'
+
+=== FORMAT — faqat JSON, o'zbek tilida ===
 
 {
   "found": true/false,
+  "key_features": "Rasmda ko'rgan narsalarni sanab o'ting (nima ko'rdingiz?)",
   "name": "O'zbekcha nomi",
-  "latin": "Ilmiy nom",
+  "latin": "Lotincha ilmiy nomi",
   "category": "giyoh | daraxt | gul | jonivor | hasharot | qush | qoziqorin",
   "confidence": 0.0-1.0,
-  "key_features": "Rasmda ko'rgan asosiy xususiyatlar (qanday barglar, gullar, meva, rang...)",
+  "alternatives": [
+    {"name": "O'zbekcha nom 2", "latin": "Latin 2", "confidence": 0.0-1.0, "why": "nima uchun"},
+    {"name": "O'zbekcha nom 3", "latin": "Latin 3", "confidence": 0.0-1.0, "why": "nima uchun"}
+  ],
   "summary": "1-2 jumla tavsif",
   "description": "3-5 jumla to'liq tavsif",
-  "habitat": "Qayerda o'sadi/yashaydi",
+  "habitat": "Qayerda o'sadi",
   "uses": "Foydasi",
-  "warnings": "Xavfi (zaharli, allergen)",
+  "warnings": "Xavfi",
   "first_aid": "Xavf bo'lsa yordam, yo'q bo'lsa bo'sh",
   "red_book": true/false,
   "iucn_status": "LC/NT/VU/EN/CR/NE",
-  "regions": "Qayerda tarqalgan",
-  "similar_species": ["o'xshash tur 1", "o'xshash tur 2"]
+  "regions": "Qayerda tarqalgan"
 }
 
-Aniqlanmasa: {"found": false, "reason": "sabab"}
+Aniqlanmasa (rasmda o'simlik/hayvon ko'rinmasa): {"found": false, "reason": "sabab"}
 Faqat JSON, boshqa matn yo'q."""
 
 

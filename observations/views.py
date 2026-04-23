@@ -154,6 +154,8 @@ class ObservationViewSet(viewsets.ModelViewSet):
                 "iucn_status": species.iucn_status,
                 "regions": species.regions,
                 "similar_species": result.get("similar_species") or [],
+                "alternatives": result.get("alternatives") or [],
+                "key_features": result.get("key_features") or "",
                 "picture": request.build_absolute_uri(obs.photo.url) if obs and obs.photo else None,
             },
             "confidence": confidence,
