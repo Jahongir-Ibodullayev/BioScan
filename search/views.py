@@ -69,8 +69,18 @@ CATEGORY_MAP = {
 IUCN_REDBOOK = ["CR", "EN", "VU", "NT"]  # Critically / Endangered / Vulnerable / Near Threatened
 
 
+import hashlib as _hashlib
+import json as _json
+
+
+def _safe_cache_key(namespace: str, path: str, params: dict) -> str:
+    """Memcached-safe cache key — hash long/complex parts, no spaces."""
+    raw = _json.dumps([path, sorted(params.items())], sort_keys=True, default=str)
+    return f"{namespace}:{_hashlib.sha1(raw.encode()).hexdigest()[:16]}"
+
+
 def _inat_get(path: str, params: dict) -> dict:
-    key = f"inat:{path}:{sorted(params.items())}"
+    key = _safe_cache_key("inat", path, params)
     cached = cache.get(key)
     if cached:
         return cached
@@ -82,7 +92,7 @@ def _inat_get(path: str, params: dict) -> dict:
 
 
 def _gbif_get(path: str, params: dict) -> dict:
-    key = f"gbif:{path}:{sorted(params.items())}"
+    key = _safe_cache_key("gbif", path, params)
     cached = cache.get(key)
     if cached:
         return cached
@@ -98,7 +108,7 @@ def _inat_photo_for(canonical_name: str) -> tuple[str | None, str | None]:
     Falls back to genus if species not found. Cached 24h."""
     if not canonical_name:
         return None, None
-    key = f"inatphoto:{canonical_name.lower()}"
+    key = _safe_cache_key("inatphoto", canonical_name.lower(), {})
     cached = cache.get(key)
     if cached is not None:
         return cached or (None, None)
@@ -551,7 +561,7 @@ def gbif_occurrences(request):
 def _wiki_one(lang: str, title: str) -> dict | None:
     """Fetch Wikipedia summary in one language."""
     base = WIKI_UZ if lang == "uz" else (WIKI_EN if lang == "en" else f"https://{lang}.wikipedia.org/api/rest_v1")
-    key = f"wiki:{lang}:{title}"
+    key = _safe_cache_key("wiki", f"{lang}:{title}", {})
     cached = cache.get(key)
     if cached is not None:
         return cached or None
@@ -590,7 +600,7 @@ def enrich(request):
     if not name:
         return Response({"detail": "name majburiy"}, status=status.HTTP_400_BAD_REQUEST)
 
-    cache_key = f"enrich:{name}:{common}:{category}"
+    cache_key = _safe_cache_key("enrich", f"{name}|{common}|{category}", {})
     cached = cache.get(cache_key)
     if cached:
         return Response(cached)
@@ -721,7 +731,7 @@ def wikipedia_summary(request):
         return Response({"detail": "title majburiy"}, status=status.HTTP_400_BAD_REQUEST)
 
     base = WIKI_UZ if lang == "uz" else WIKI_EN
-    key = f"wiki:{lang}:{title}"
+    key = _safe_cache_key("wiki", f"{lang}:{title}", {})
     cached = cache.get(key)
     if cached:
         return Response(cached)
