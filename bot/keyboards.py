@@ -5,16 +5,14 @@ WEB_APP_URL = "https://startup-seven-pied.vercel.app"
 
 
 def main_menu() -> ReplyKeyboardMarkup:
-    """Main persistent menu at bottom. First row opens the web app inside Telegram."""
+    """Main persistent menu — WebApp + Scanner + AI only."""
     return ReplyKeyboardMarkup(
         [
             [KeyboardButton("🌿 Tog'AI ilovasini ochish", web_app=WebAppInfo(url=WEB_APP_URL))],
-            [KeyboardButton("📷 Skaner"), KeyboardButton("📚 Katalog")],
-            [KeyboardButton("🗺 Xarita"), KeyboardButton("🤖 AI yordam")],
-            [KeyboardButton("🏅 Herbariy"), KeyboardButton("⚠️ Hodisa xabar")],
+            [KeyboardButton("📷 Skaner"), KeyboardButton("🤖 AI yordam")],
         ],
         resize_keyboard=True,
-        input_field_placeholder="Menyudan tanlang yoki rasm yuboring…",
+        input_field_placeholder="Savolingizni yozing yoki rasm yuboring…",
     )
 
 

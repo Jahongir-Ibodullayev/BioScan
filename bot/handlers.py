@@ -139,12 +139,8 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     MAP = {
         "🌿 Tog'AI ilovasini ochish": f"🌿 Web ilova: {base}",
-        "📷 Skaner": f"📸 Skaner: rasm yuboring yoki web ilovada oching — {base}/app/scanner",
-        "📚 Katalog": f"📚 Katalog: {base}/app/catalog",
-        "🗺 Xarita": f"🗺 Xarita: {base}/app/map",
+        "📷 Skaner": "📸 O'simlik yoki jonivor rasmini yuboring — AI 2 soniyada aniqlaydi.",
         "🤖 AI yordam": "Savolingizni yozing — AI javob beradi. Yoki rasm yuboring 📷",
-        "🏅 Herbariy": f"🏅 Kolleksiyangiz: {base}/app/collection",
-        "⚠️ Hodisa xabar": f"⚠️ Hodisa: {base}/app/report yoki /sos",
     }
     if text in MAP:
         await update.message.reply_text(MAP[text])
