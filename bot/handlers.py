@@ -22,10 +22,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode=ParseMode.HTML,
         reply_markup=keyboards.main_menu(),
     )
-    await update.message.reply_text(
-        "Quyidagi tugmalardan birini tanlang yoki rasm yuboring:",
-        reply_markup=keyboards.start_keyboard(),
-    )
 
 
 async def app_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
