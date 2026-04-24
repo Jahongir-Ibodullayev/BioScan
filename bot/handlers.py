@@ -146,8 +146,43 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(MAP[text])
         return
 
-    # AI fallback — free-form questions answered by LLM
     await context.bot.send_chat_action(update.effective_chat.id, ChatAction.TYPING)
+
+    # Detect: is this a species name lookup (1-3 words, non-question)
+    is_name_like = (
+        len(text) <= 40
+        and len(text.split()) <= 3
+        and "?" not in text
+        and not text.endswith(".")
+    )
+
+    if is_name_like:
+        # Try enrich pipeline — Wikipedia + iNat + AI
+        enriched = _try_enrich(text)
+        if enriched:
+            if enriched.startswith("[PHOTO:"):
+                # Extract photo URL and caption
+                first_line, rest = enriched.split("\n", 1)
+                photo_url = first_line.removeprefix("[PHOTO:").rstrip("]")
+                caption = rest[:1024]  # Telegram caption limit
+                try:
+                    await update.message.reply_photo(
+                        photo=photo_url,
+                        caption=caption,
+                        parse_mode=ParseMode.HTML,
+                    )
+                except Exception:
+                    # Fallback if photo fails
+                    await update.message.reply_text(
+                        rest, parse_mode=ParseMode.HTML, disable_web_page_preview=True,
+                    )
+            else:
+                await update.message.reply_text(
+                    enriched, parse_mode=ParseMode.HTML, disable_web_page_preview=True,
+                )
+            return
+
+    # AI fallback — free-form questions answered by LLM
     try:
         from togai.integrations import groq_chat
         system = (
@@ -158,11 +193,104 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         reply = groq_chat(text, system=system)
         await update.message.reply_text(reply)
-    except Exception as e:
+    except Exception:
         log.exception("AI chat error in bot")
         await update.message.reply_text(
             "🤖 Hozir javob bera olmadim. Qayta urinib ko'ring yoki rasm yuboring 📷"
         )
+
+
+def _try_enrich(name: str) -> str | None:
+    """For a species-name-like text: fetch Wikipedia UZ + iNat photo + AI summary.
+    Returns formatted HTML message, or None if nothing found."""
+    import requests
+    import urllib.parse
+    from search.uz_vocab import resolve_uz
+
+    # 1. UZ vocab → Latin
+    resolved = resolve_uz(name)
+    latin = resolved["latin"] if resolved else name
+    common = resolved["original"] if resolved else name
+    title_uz = urllib.parse.quote(common.replace(" ", "_"))
+
+    # 2. Wikipedia UZ summary
+    wiki_extract = ""
+    wiki_url = f"https://uz.wikipedia.org/wiki/{title_uz}"
+    try:
+        r = requests.get(
+            f"https://uz.wikipedia.org/api/rest_v1/page/summary/{title_uz}",
+            headers={"User-Agent": "TogAI-Bot/1.0"},
+            timeout=8,
+        )
+        if r.ok:
+            j = r.json()
+            wiki_extract = (j.get("extract") or "").strip()
+            wiki_url = ((j.get("content_urls") or {}).get("desktop") or {}).get("page") or wiki_url
+    except requests.RequestException:
+        pass
+
+    # 3. iNaturalist: first taxon + photo
+    photo_url = ""
+    inat_url = ""
+    try:
+        r = requests.get(
+            "https://api.inaturalist.org/v1/taxa",
+            params={"q": latin or common, "per_page": 1, "is_active": "true"},
+            headers={"User-Agent": "TogAI-Bot/1.0"},
+            timeout=6,
+        )
+        if r.ok:
+            results = (r.json() or {}).get("results") or []
+            if results:
+                t = results[0]
+                inat_url = f"https://www.inaturalist.org/taxa/{t.get('id')}"
+                photo_obj = t.get("default_photo") or {}
+                photo_url = photo_obj.get("medium_url") or photo_obj.get("original_url") or ""
+    except requests.RequestException:
+        pass
+
+    # 4. AI bridge (only if no Wikipedia result)
+    ai_summary = ""
+    if not wiki_extract:
+        try:
+            from togai.integrations import groq_chat
+            ai_summary = groq_chat(
+                f"'{common}' ({latin or ''}) — Markaziy Osiyo tabiat ekspertida "
+                f"bu haqda 2-3 jumlada o'zbek tilida ma'lumot bering. "
+                f"Agar bilmasangiz 'Ma'lumot yetarli emas' deb yozing.",
+                system="Sen Tog'AI yordamchisisan — biologiya eksperti. O'zbek tilida, qisqa va aniq.",
+            )
+        except Exception:
+            pass
+
+    # Nothing usable
+    if not wiki_extract and not ai_summary and not photo_url:
+        return None
+
+    # 5. Build HTML response
+    lines = [f"🌿 <b>{common.title()}</b>"]
+    if resolved and resolved.get("latin") and resolved["latin"] != common:
+        lines.append(f"<i>{resolved['latin']}</i>\n")
+    elif latin and latin.lower() != common.lower():
+        lines.append(f"<i>{latin}</i>\n")
+
+    body = wiki_extract or ai_summary
+    if body:
+        lines.append(body[:700])
+
+    links = []
+    if wiki_url:
+        links.append(f'📖 <a href="{wiki_url}">Wikipedia</a>')
+    if inat_url:
+        links.append(f'🔬 <a href="{inat_url}">iNaturalist</a>')
+    if links:
+        lines.append("\n" + " · ".join(links))
+
+    if photo_url:
+        # Return marker so caller can send photo+caption
+        return f"[PHOTO:{photo_url}]\n" + "\n".join(lines)
+
+    return "\n".join(lines)
 
 
 # ------------------------------------------------------------------
