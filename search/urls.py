@@ -12,4 +12,5 @@ urlpatterns = [
     path("gbif/<int:taxon_key>/", views.gbif_detail, name="gbif-detail"),
     path("gbif/occurrences/", views.gbif_occurrences, name="gbif-occurrences"),
     path("enrich/", views.enrich, name="enrich"),
+    path("ai-help/", views.ai_help, name="ai-help"),
 ]

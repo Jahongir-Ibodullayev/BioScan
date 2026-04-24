@@ -637,6 +637,71 @@ def _wiki_one(lang: str, title: str) -> dict | None:
 
 @api_view(["GET"])
 @permission_classes([permissions.AllowAny])
+def ai_help(request):
+    """GET /api/search/ai-help/?q=lola
+
+    AI-powered search assistant. Called when main search returns empty/poor results.
+    Returns Uzbek explanation + suggested Latin names + likely taxa.
+    """
+    q = (request.GET.get("q") or "").strip()
+    if not q:
+        return Response({"detail": "q majburiy"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Check UZ vocab first (cheap)
+    resolved = resolve_uz(q)
+    if resolved:
+        return Response({
+            "source": "vocab",
+            "query": q,
+            "latin": resolved["latin"],
+            "category": resolved["category"],
+            "english": resolved["english"],
+            "answer": f"«{q.title()}» — bu o'zbek xalq nomi. Ilmiy nomi: {resolved['latin']} "
+                      f"({resolved['english']}). Kategoriyasi: {resolved['category']}.",
+        })
+
+    # Fallback to LLM — let AI try to identify the Uzbek name
+    from togai.integrations import groq_chat
+
+    cache_parts = ("aihelp", q.lower())
+    cached = cache.get(_safe_cache_key(*cache_parts, {}))
+    if cached:
+        return Response(cached)
+
+    system = (
+        "Sen Markaziy Osiyo flora/faunasi ekspertisan. Foydalanuvchi o'zbek yoki boshqa tilda "
+        "tur nomini yozdi. Sen JSON qaytar: {latin, category, english, answer}. "
+        "'answer' — 2-3 jumla o'zbek tilida tavsif. Bilmasang answer: 'Aniq ma'lumot topilmadi'."
+    )
+    prompt = (
+        f"Foydalanuvchi qidirayapti: «{q}»\n\n"
+        f"Bu qaysi o'simlik yoki jonivor bo'lishi mumkin? Faqat JSON qaytar:\n"
+        f'{{"latin": "Ilmiy lotin nomi", "category": "giyoh|daraxt|gul|jonivor|qush|ilon|hasharot|qoziqorin", '
+        f'"english": "English common name", "answer": "2-3 jumla o\'zbekcha tavsif"}}'
+    )
+    try:
+        raw = groq_chat(prompt, system=system, temperature=0.2, max_tokens=400)
+        import json as _json
+        # Extract JSON from response
+        start = raw.find("{")
+        end = raw.rfind("}") + 1
+        if start >= 0 and end > start:
+            parsed = _json.loads(raw[start:end])
+            result = {"source": "ai", "query": q, **parsed}
+            cache.set(_safe_cache_key(*cache_parts, {}), result, 60 * 60 * 24)
+            return Response(result)
+    except Exception:
+        pass
+
+    return Response({
+        "source": "none",
+        "query": q,
+        "answer": f"«{q}» haqida aniq ma'lumot topilmadi. Boshqa nom yoki rasm yuboring.",
+    })
+
+
+@api_view(["GET"])
+@permission_classes([permissions.AllowAny])
 def enrich(request):
     """GET /api/search/enrich/?name=Alhagi%20pseudalhagi&common=Yantoq
 
