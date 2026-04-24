@@ -147,29 +147,58 @@ def _inat_photo_for(canonical_name: str) -> tuple[str | None, str | None]:
 @api_view(["GET"])
 @permission_classes([permissions.AllowAny])
 def taxa_search(request):
-    """GET /api/search/taxa/?q=yantoq&per_page=20&locale=uz"""
-    q = request.GET.get("q", "").strip()
-    if not q:
+    """GET /api/search/taxa/?q=yantoq&per_page=20&locale=uz
+
+    Uzbek-first search:
+      1. If q is a Uzbek folk name (lola, yantoq, isiriq...) → translate to Latin
+      2. Query iNaturalist with Latin OR rank=species filter to avoid bugs with 'lola' (species epithet)
+      3. Override common_name with Uzbek from vocab
+    """
+    q_original = request.GET.get("q", "").strip()
+    if not q_original:
         return Response({"detail": "q parametri majburiy"}, status=status.HTTP_400_BAD_REQUEST)
 
     per_page = min(int(request.GET.get("per_page", 20)), 50)
     locale = request.GET.get("locale", "uz")
 
+    # 1) Uzbek → Latin translation
+    resolved = resolve_uz(q_original)
+    q_effective = resolved["latin"] if resolved else q_original
+    is_uz_translated = bool(resolved)
+
+    # 2) Query iNaturalist — if we translated, restrict to species rank to avoid
+    #    random epithet collisions like "Antiblemma lola" when user searched "lola"
+    params = {
+        "q": q_effective,
+        "per_page": per_page,
+        "locale": locale,
+        "all_names": "true",
+        "is_active": "true",
+    }
+    if is_uz_translated:
+        params["rank"] = "species,genus"
+
     try:
-        data = _inat_get(
-            "/taxa",
-            {"q": q, "per_page": per_page, "locale": locale, "all_names": "true", "is_active": "true"},
-        )
+        data = _inat_get("/taxa", params)
     except requests.RequestException as e:
         return Response({"detail": f"iNaturalist: {e}"}, status=status.HTTP_502_BAD_GATEWAY)
+
+    # Build a quick reverse-lookup dict from UZ vocab (latin → uz)
+    from .uz_vocab import resolve_latin
 
     results = []
     for t in data.get("results", []):
         photo = t.get("default_photo") or {}
+        latin_name = t.get("name") or ""
+
+        # Override common name with Uzbek if available
+        uz_override = resolve_latin(latin_name)
+        common_uz = uz_override["uz"] if uz_override else None
+
         results.append({
             "id": t.get("id"),
-            "name": t.get("name"),
-            "preferred_common_name": t.get("preferred_common_name") or t.get("english_common_name"),
+            "name": latin_name,
+            "preferred_common_name": common_uz or t.get("preferred_common_name") or t.get("english_common_name"),
             "rank": t.get("rank"),
             "iconic_taxon_name": t.get("iconic_taxon_name"),
             "observations_count": t.get("observations_count"),
@@ -178,7 +207,27 @@ def taxa_search(request):
             "photo": photo.get("medium_url") or photo.get("original_url"),
             "attribution": photo.get("attribution"),
         })
-    return Response({"total": data.get("total_results"), "results": results})
+
+    # 3) Relevance filter: if UZ translated, keep only results where genus matches
+    if is_uz_translated and q_effective:
+        target_genus = q_effective.split()[0].lower()
+        ranked = []
+        others = []
+        for r in results:
+            if r["name"].split()[0].lower() == target_genus:
+                ranked.append(r)
+            else:
+                others.append(r)
+        # Sort by observations_count within ranked (popularity)
+        ranked.sort(key=lambda r: r.get("observations_count") or 0, reverse=True)
+        results = ranked + others
+
+    return Response({
+        "total": data.get("total_results"),
+        "translated": is_uz_translated,
+        "query_effective": q_effective,
+        "results": results,
+    })
 
 
 @api_view(["GET"])
