@@ -77,12 +77,23 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode=ParseMode.HTML,
     )
 
-    # 2. Run AI (mock)
-    species, confidence = await pick_species_for_photo()
+    # 2. Download photo bytes from Telegram
+    photo_bytes: bytes | None = None
+    try:
+        tg_photo = update.message.photo[-1]  # largest resolution
+        file = await context.bot.get_file(tg_photo.file_id)
+        photo_ba = await file.download_as_bytearray()
+        photo_bytes = bytes(photo_ba)
+    except Exception as e:
+        log.exception("photo download failed: %s", e)
+
+    # 3. Run real AI (Groq Vision)
+    species, confidence = await pick_species_for_photo(photo_bytes, mime="image/jpeg")
 
     if species is None:
         await thinking.edit_text(
-            "❌ Ma'lumotlar bazasi bo'sh. Iltimos, administrator bilan bog'laning."
+            "❌ AI rasmda tur aniqlay olmadi.\n"
+            "Yorug'likda, yaqin masofadan qayta urining 📷"
         )
         return
 
