@@ -99,6 +99,16 @@ class ObservationViewSet(viewsets.ModelViewSet):
         # 2. Groq javobi — Species'ni yangilash yoki yaratish
         latin = (result.get("latin") or "").strip()
         name = (result.get("name") or "").strip() or latin
+
+        # OVERRIDE: if AI's latin maps to our UZ vocab, use the authoritative UZ name
+        from search.uz_vocab import resolve_latin
+        uz_lookup = resolve_latin(latin)
+        if uz_lookup:
+            name = uz_lookup["uz"]
+            # also use canonical latin from vocab (more accurate than AI)
+            if not latin or latin.lower() != uz_lookup["latin"].lower():
+                latin = uz_lookup["latin"]
+
         slug = slugify(latin or name) or f"tur-{random.randint(1000, 9999)}"
 
         species, created = Species.objects.update_or_create(
@@ -154,7 +164,15 @@ class ObservationViewSet(viewsets.ModelViewSet):
                 "iucn_status": species.iucn_status,
                 "regions": species.regions,
                 "similar_species": result.get("similar_species") or [],
-                "alternatives": result.get("alternatives") or [],
+                "alternatives": [
+                    {
+                        **a,
+                        # Override alt name from vocab if Latin matches
+                        "name": (resolve_latin(a.get("latin", "")) or {}).get("uz") or a.get("name"),
+                    }
+                    for a in (result.get("alternatives") or [])
+                    if isinstance(a, dict)
+                ],
                 "key_features": result.get("key_features") or "",
                 "picture": request.build_absolute_uri(obs.photo.url) if obs and obs.photo else None,
             },

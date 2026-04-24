@@ -29,6 +29,8 @@ UZ_TO_LATIN: dict[str, tuple[str, str, str]] = {
     "tarvuz":       ("Citrullus lanatus",   "plant",  "Watermelon"),
     "qovun":        ("Cucumis melo",        "plant",  "Melon"),
     "qulupnay":     ("Fragaria × ananassa", "plant",  "Strawberry"),
+    "aloe":         ("Aloe vera",            "plant",  "Aloe"),
+    "alo":          ("Aloe vera",            "plant",  "Aloe"),
     "malina":       ("Rubus idaeus",        "plant",  "Raspberry"),
     "gilos":        ("Prunus avium",        "plant",  "Cherry"),
     "na'matak":     ("Rosa canina",         "plant",  "Rosehip"),
@@ -225,6 +227,24 @@ UZ_TO_LATIN: dict[str, tuple[str, str, str]] = {
     "shampinyon":   ("Agaricus bisporus",   "fungi",  "Button mushroom"),
     "bo'ri qulog'i":("Pleurotus",           "fungi",  "Oyster mushroom"),
 }
+
+
+def resolve_latin(latin: str) -> dict | None:
+    """Reverse: Latin (Peganum harmala) → UZ name (Isiriq). Case-insensitive partial."""
+    if not latin:
+        return None
+    q = latin.strip().lower()
+    # Exact match first
+    for uz_name, (lat, cat, en) in UZ_TO_LATIN.items():
+        if lat.lower() == q:
+            return {"uz": uz_name.title(), "latin": lat, "category": cat, "english": en}
+    # Genus-only match (Artemisia vs Artemisia vulgaris)
+    q_genus = q.split()[0] if q else ""
+    for uz_name, (lat, cat, en) in UZ_TO_LATIN.items():
+        lat_genus = lat.split()[0] if lat else ""
+        if q_genus and lat_genus.lower() == q_genus:
+            return {"uz": uz_name.title(), "latin": lat, "category": cat, "english": en}
+    return None
 
 
 def resolve_uz(term: str) -> dict | None:
