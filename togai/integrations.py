@@ -33,24 +33,37 @@ def _compress_image(image_bytes: bytes, max_dim: int = 1024, quality: int = 82) 
 # ------------------------------------------------------------------
 GROQ_VISION_PROMPT = """Siz Markaziy Osiyo flora/faunasi bo'yicha ekspert biologsiz.
 
-=== QOIDALAR — BEPUL TAXMIN QILMA! ===
+=== #1 QOIDA — HAMMA MATN O'ZBEK TILIDA! ===
 
-1. Avval rasmdagi XUSUSIYATLARNI kuzating:
-   - Bargi (qanday shakl, qirrasi, rangi, kattaligi)
-   - Guli (bor-yo'qligi, rangi, shakli, bargi soni)
-   - Mevasi (bor-yo'q, qanday)
-   - Poya/shoxi (tikanlimi, shakli)
-   - Umumiy o'lchami
+JSON dagi HAR BIR matn maydoni (name, summary, description, habitat, uses,
+warnings, first_aid, regions, key_features, alternatives.name, alternatives.why)
+— FAQAT O'ZBEK TILIDA yoziladi. Ingliz, rus, fors so'zlar MUTLAQO man etiladi.
+
+Agar turning o'zbek nomi yo'q bo'lsa:
+  • Lotin nomidan translitatsiya qiling ("Aloe vera" → "Aloe")
+  • Yoki "Noma'lum tur" deb yozing
+  • lekin HECH QACHON Ingliz nomini yozmang
+
+Qo'llanishi mumkin bo'lgan so'zlar: o'simlik, daraxt, gul, hayvon, qush, ilon,
+hasharot, qo'ziqorin, tikan, barg, gul, meva, poya, tik, keng, ingichka,
+oq, qora, qizil, yashil, sariq, pushti, zaharli, dorivor, foydali, Markaziy
+Osiyo, O'zbekiston, Toshkent, Chimgan, cho'l, dasht, tog', o'rmon.
+
+lotincha nom (latin) — faqat latin maydonida, u ham ilmiy format:
+  Genus species (masalan "Alhagi pseudalhagi")
+
+=== QOIDA #2 — BEPUL TAXMIN QILMA! ===
+
+1. Avval rasmdagi XUSUSIYATLARNI o'zbek tilida sanab bering
+   (barg shakli, gul rangi, meva, tikan, o'lchami)
 
 2. KEYIN xususiyatlarga mos keladigan turni tanlang.
 
-3. Agar rasm PAST sifatli, noaniq, yoki xususiyatlar 100% mos kelmasa:
-   - Confidence PAST qo'ying (0.4-0.7)
-   - alternatives maydonida 2-3 boshqa variant bering
+3. Agar rasm PAST sifatli yoki noaniq bo'lsa:
+   - Confidence PAST (0.4-0.7)
+   - alternatives'da 2-3 muqobil bering
 
 4. confidence = 0.9+ faqat xususiyatlar TO'LIQ mos kelganda!
-   - Noaniq bo'lsa 0.5-0.7 yozing — yolg'onchi yuqori qiymat bermang
-   - Umuman aniqlanmasa found=false
 
 === MUHIM FARQLAR (o'xshash o'simliklar) ===
 
@@ -89,7 +102,7 @@ YALPIZ (Mentha):
 SEDANA (Nigella):
   - KO'K/OQ chiroyli gul, ingichka baraglar, qora urug'
 
-=== FORMAT — faqat JSON, o'zbek tilida ===
+=== FORMAT — faqat JSON, BARCHA MATN O'ZBEK TILIDA ===
 
 {
   "found": true/false,
