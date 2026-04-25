@@ -342,16 +342,29 @@ def browse(request):
       per_page: 1..50 (default 30)
       locale:   uz | ru | en (default uz)
     """
+    from .uz_vocab import resolve_uz, resolve_latin
+
     per_page = min(int(request.GET.get("per_page", 30)), 50)
     locale = request.GET.get("locale", "uz")
     cat = (request.GET.get("category") or "").lower().strip()
     iconic = CATEGORY_MAP.get(cat)
     is_redbook = (request.GET.get("redbook") or "").lower() in ("true", "1", "yes")
     is_uz = (request.GET.get("place") or "").lower() in ("uz", "uzbekistan")
-    q = (request.GET.get("q") or "").strip()
+    q_original = (request.GET.get("q") or "").strip()
+
+    # UZ-first: agar foydalanuvchi o'zbekcha so'rasa (lola, isiriq) — Latin nomga aylantiramiz
+    resolved = resolve_uz(q_original) if q_original else None
+    q = resolved["latin"] if resolved else q_original
 
     iconic_to_cat = {v: k for k, v in CATEGORY_MAP.items()
                      if k in ("plant", "animal", "bird", "reptile", "insect", "fish", "fungi")}
+
+    def _uz_common(latin_name: str, fallback: str | None) -> str | None:
+        """Latin → UZ common name (Peganum harmala → Isiriq). Topilmasa fallback'ni qaytaradi."""
+        if not latin_name:
+            return fallback
+        ov = resolve_latin(latin_name)
+        return ov["uz"] if ov else fallback
 
     # Joy yoki Qizil kitob bo'lsa — /observations/species_counts (iNat shunday ishlaydi)
     if is_redbook or is_uz:
@@ -379,10 +392,12 @@ def browse(request):
             photo = t.get("default_photo") or {}
             cs = (t.get("conservation_status") or {})
             it = t.get("iconic_taxon_name") or ""
+            latin = t.get("name") or ""
+            common = _uz_common(latin, t.get("preferred_common_name") or t.get("english_common_name"))
             results.append({
                 "id": t.get("id"),
-                "name": t.get("name"),
-                "common_name": t.get("preferred_common_name") or t.get("english_common_name"),
+                "name": latin,
+                "common_name": common,
                 "rank": t.get("rank"),
                 "iconic_taxon": it,
                 "category": iconic_to_cat.get(it, "other"),
@@ -431,10 +446,12 @@ def browse(request):
         cs = (t.get("conservation_status") or {})
         it = t.get("iconic_taxon_name") or ""
         status_code = (cs.get("status") or "").upper() or None
+        latin = t.get("name") or ""
+        common = _uz_common(latin, t.get("preferred_common_name") or t.get("english_common_name"))
         results.append({
             "id": t.get("id"),
-            "name": t.get("name"),
-            "common_name": t.get("preferred_common_name") or t.get("english_common_name"),
+            "name": latin,
+            "common_name": common,
             "rank": t.get("rank"),
             "iconic_taxon": it,
             "category": iconic_to_cat.get(it, "other"),
