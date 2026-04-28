@@ -87,6 +87,26 @@ class ObservationViewSet(viewsets.ModelViewSet):
 
         slug = slugify(latin or name) or f"tur-{random.randint(1000, 9999)}"
 
+        # Universal UZ: hamma matn maydonlarini tekshir
+        summary = (result.get("summary") or "")[:280]
+        description = result.get("description") or ""
+        habitat = result.get("habitat") or ""
+        uses = result.get("uses") or ""
+        warnings = result.get("warnings") or ""
+        first_aid = result.get("first_aid") or ""
+        regions = result.get("regions") or ""
+        try:
+            from togai.services.translate import ensure_uz
+            if summary: summary = ensure_uz(summary, kind="auto")
+            if description: description = ensure_uz(description, kind="block")
+            if habitat: habitat = ensure_uz(habitat, kind="auto")
+            if uses: uses = ensure_uz(uses, kind="auto")
+            if warnings: warnings = ensure_uz(warnings, kind="auto")
+            if first_aid: first_aid = ensure_uz(first_aid, kind="auto")
+            if regions: regions = ensure_uz(regions, kind="auto")
+        except Exception:
+            pass
+
         species, created = Species.objects.update_or_create(
             slug=slug,
             defaults={
@@ -97,15 +117,15 @@ class ObservationViewSet(viewsets.ModelViewSet):
                     "giyoh": "leaf", "daraxt": "tree", "gul": "flower",
                     "jonivor": "paw", "hasharot": "paw", "qush": "paw",
                 }.get(result.get("category"), "leaf"),
-                "summary": (result.get("summary") or "")[:280],
-                "description": result.get("description") or "",
-                "habitat": result.get("habitat") or "",
-                "uses": result.get("uses") or "",
-                "warnings": result.get("warnings") or "",
-                "first_aid": result.get("first_aid") or "",
+                "summary": summary,
+                "description": description,
+                "habitat": habitat,
+                "uses": uses,
+                "warnings": warnings,
+                "first_aid": first_aid,
                 "red_book": bool(result.get("red_book")),
                 "iucn_status": (result.get("iucn_status") or "NE")[:4],
-                "regions": result.get("regions") or "",
+                "regions": regions,
             },
         )
 

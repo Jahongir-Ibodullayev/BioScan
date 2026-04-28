@@ -213,6 +213,81 @@ def translate_batch(items: list[tuple[str, str]]) -> dict[str, str]:
     return out
 
 
+def ensure_uz(text: str, *, kind: str = "auto") -> str:
+    """Universal: matn ingliz/rus bo'lsa, AI orqali O'zbekchaga aylantir.
+
+    kind: "name" (1-3 so'z, qisqa) yoki "block" (paragraf) yoki "auto"
+    """
+    text = _normalize(text)
+    if not text:
+        return text
+    # Allaqachon o'zbekcha — qaytar
+    if _is_already_uz(text):
+        return text
+    # Latin binomial — qaytar
+    if _is_latin_binomial(text):
+        return text
+
+    # Auto: uzunlik bilan tanlash
+    if kind == "auto":
+        kind = "block" if len(text) > 80 else "name"
+
+    if kind == "name":
+        return translate_one(text)
+
+    # block: cache + AI bilan paragraf tarjima
+    key = _cache_key(text[:200], "block")
+    cached = cache.get(key)
+    if cached is not None and cached != "":
+        if _looks_english(cached[:120]):
+            cache.delete(key)
+        else:
+            return cached
+    elif cached == "":
+        return text
+
+    try:
+        translated = _ai_translate_block(text)
+        if translated and translated != text and not _looks_english(translated[:120]):
+            cache.set(key, translated, CACHE_TTL)
+            return translated
+        cache.set(key, "", NEG_TTL)
+    except Exception as e:
+        log.warning("ensure_uz block translation failed: %s", e)
+        cache.set(key, "", NEG_TTL)
+    return text
+
+
+def _ai_translate_block(text: str) -> str:
+    """Groq LLM bilan paragraf tarjima."""
+    if not getattr(settings, "GROQ_API_KEY", None):
+        return text
+
+    import requests
+    sys_prompt = (
+        "Siz biologiya/tabiat sohasidagi tarjimon. "
+        "Sizga ingliz yoki rus tilidagi matn keladi — uni TABIIY o'zbek tiliga tarjima qiling. "
+        "Ilmiy lotin nomlarini O'ZGARTIRMASDAN qoldiring. "
+        "Faqat tarjima matnini qaytaring, hech qanday izoh yoki sarlavha yo'q."
+    )
+    r = requests.post(
+        "https://api.groq.com/openai/v1/chat/completions",
+        headers={"Authorization": f"Bearer {settings.GROQ_API_KEY}"},
+        json={
+            "model": "llama-3.3-70b-versatile",
+            "messages": [
+                {"role": "system", "content": sys_prompt},
+                {"role": "user", "content": text[:3000]},
+            ],
+            "temperature": 0.2,
+            "max_tokens": 1200,
+        },
+        timeout=25,
+    )
+    r.raise_for_status()
+    return r.json()["choices"][0]["message"]["content"].strip()
+
+
 def _ai_translate_single(name: str, latin: str = "") -> str:
     """Groq LLM bilan bitta nomni tarjima qil."""
     if not getattr(settings, "GROQ_API_KEY", None):

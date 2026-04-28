@@ -257,15 +257,19 @@ def taxon_detail(request, taxon_id: int):
     # UZ name resolution: vocab → AI translate fallback
     latin_n = t.get("name") or ""
     raw_common = t.get("preferred_common_name") or t.get("english_common_name")
+    raw_summary = t.get("wikipedia_summary") or ""
     uz_common = raw_common
+    uz_summary = raw_summary
     try:
         from .uz_vocab import resolve_latin
+        from togai.services.translate import translate_one, ensure_uz
         ov = resolve_latin(latin_n)
         if ov:
             uz_common = ov["uz"]
         elif raw_common:
-            from togai.services.translate import translate_one
             uz_common = translate_one(raw_common, latin_n)
+        if raw_summary:
+            uz_summary = ensure_uz(raw_summary, kind="block")
     except Exception:
         pass
 
@@ -278,7 +282,7 @@ def taxon_detail(request, taxon_id: int):
         "observations_count": t.get("observations_count"),
         "conservation_status": (t.get("conservation_status") or {}).get("status_name"),
         "wikipedia_url": t.get("wikipedia_url"),
-        "wikipedia_summary": t.get("wikipedia_summary"),
+        "wikipedia_summary": uz_summary,
         "photo": default.get("medium_url") or default.get("original_url"),
         "photos": photos,
         "ancestors": [{"id": a.get("id"), "name": a.get("name"), "rank": a.get("rank")} for a in t.get("ancestors", [])],
@@ -844,15 +848,37 @@ def enrich(request):
 
     sections = _parse_sections(ai_text)
 
+    description = sections.get("tavsif") or (wiki.get("extract") if wiki else "")
+    uses = sections.get("foydasi") or ""
+    warnings = sections.get("xavfi") or ""
+    first_aid = sections.get("birinchi_yordam") or ""
+    common_uz = common
+
+    # Universal Uzbek garant: agar biror maydon ingliz/rus bo'lsa, AI tarjima
+    try:
+        from togai.services.translate import ensure_uz
+        if description:
+            description = ensure_uz(description, kind="block")
+        if uses:
+            uses = ensure_uz(uses, kind="auto")
+        if warnings:
+            warnings = ensure_uz(warnings, kind="auto")
+        if first_aid:
+            first_aid = ensure_uz(first_aid, kind="auto")
+        if common_uz:
+            common_uz = ensure_uz(common_uz, kind="name")
+    except Exception:
+        pass
+
     result = {
         "name": name,
-        "common_name": common,
+        "common_name": common_uz,
         "category": category,
         "wikipedia": wiki,
-        "description": sections.get("tavsif") or (wiki.get("extract") if wiki else ""),
-        "uses": sections.get("foydasi") or "",
-        "warnings": sections.get("xavfi") or "",
-        "first_aid": sections.get("birinchi_yordam") or "",
+        "description": description,
+        "uses": uses,
+        "warnings": warnings,
+        "first_aid": first_aid,
         "raw": ai_text,
     }
     cache.set(cache_key, result, 60 * 60 * 24)  # 24h — AI+Wiki data rarely changes
