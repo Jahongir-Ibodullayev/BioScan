@@ -52,6 +52,23 @@ def _is_already_uz(text: str) -> bool:
     return False
 
 
+# Inglizcha "telltale" so'zlari — bunday so'z bo'lsa = ingliz qoldig'i
+_EN_FILLER = re.compile(r"\b(american|asian|african|european|common|wild|northern|southern|tree|flower|bird|black|white|red|green|blue|grass|leaf|water|tit|warbler|finch|sparrow|stork|crane|eagle|hawk|swan|owl|gull|tern|dove|pigeon|the|of|and)\b", re.IGNORECASE)
+
+
+def _looks_english(text: str) -> bool:
+    """Tarjima inglizcha qoldigan bo'lishi mumkinmi?"""
+    if not text:
+        return False
+    # UZ belgisi bo'lsa — ingliz emas
+    if _CYRILLIC_UZ.search(text) or _UZ_DIGRAPHS.search(text):
+        return False
+    # ASCII bo'lib, ingliz so'zlari tarkibida bo'lsa — ingliz
+    if all(c.isascii() for c in text) and _EN_FILLER.search(text):
+        return True
+    return False
+
+
 def _is_latin_binomial(text: str) -> bool:
     """Lotincha ilmiy nom bo'lsa tarjima kerak emas."""
     return bool(_LATIN_RE.match(text or ""))
@@ -86,11 +103,16 @@ def translate_one(name: str, latin: str = "") -> str:
         except Exception:
             pass
 
-    # 2. Cache tekshir
+    # 2. Cache tekshir (English qoldiqlarni bypass qiladi)
     key = _cache_key(name, latin)
     cached = cache.get(key)
-    if cached is not None:
-        return cached or name
+    if cached is not None and cached != "":
+        if _looks_english(cached):
+            cache.delete(key)
+        else:
+            return cached
+    elif cached == "":
+        return name
 
     # 3. AI tarjima
     try:
@@ -134,11 +156,19 @@ def translate_batch(items: list[tuple[str, str]]) -> dict[str, str]:
             except Exception:
                 pass
 
-        # Cache
+        # Cache (lekin cache'da inglizcha qoldiq bo'lsa qaytadan tarjima qil)
         key = _cache_key(name_n, latin)
         cached = cache.get(key)
-        if cached is not None:
-            out[name] = cached or name_n
+        if cached is not None and cached != "":
+            if _looks_english(cached):
+                # eski stale cache — tashlamiz va qaytadan tarjima qilamiz
+                cache.delete(key)
+            else:
+                out[name] = cached
+                continue
+        elif cached == "":
+            # negative cache — original
+            out[name] = name_n
             continue
 
         pending.append((name_n, latin))
