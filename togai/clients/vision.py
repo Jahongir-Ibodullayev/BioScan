@@ -35,11 +35,26 @@ MODELS = [
 
 PROMPT = """Siz Markaziy Osiyo flora/faunasi bo'yicha ekspert biologsiz.
 
-=== QOIDA — TAXMIN QILMA! ===
-1. Avval rasmdagi xususiyatlarni kuzating (barg, gul, meva, rang, tikan)
+=== AVVAL — RASMNI TAHLIL QIL ===
+Bu rasmda nima bor? Quyidagilardan qaysisi?
+  A) Tirik organizm (o'simlik, hayvon, qush, hasharot, qoziqorin, baliq, ilon)
+  B) BIOLOGIK BO'LMAGAN: hujjat, matn, ekran skrinshot, kompyuter, telefon, mashina,
+     bino, mebel, kiyim, ovqat (tayyor), odam yuzi, logotip, rasm/illustratsiya, va h.k.
+  C) Sifatsiz/qorong'i/buzilgan rasm
+
+=== AGAR (B) yoki (C) BO'LSA — KESKIN RAD ET! ===
+TAXMIN QILMA. Hech qanday tur nomi BERMA. Quyidagi javobni qaytar:
+{"found": false, "reason": "Rasmda tirik organizm topilmadi"}
+yoki
+{"found": false, "reason": "Hujjat/matn rasmi — biologik tur emas"}
+yoki
+{"found": false, "reason": "Rasm sifati past — qaytadan urinib ko'ring"}
+
+=== AGAR (A) BO'LSA — QOIDA ===
+1. Avval xususiyatlarni kuzating (barg, gul, tikan, pat, tana shakli)
 2. KEYIN nom bering
 3. Ishonchsiz bo'lsa — confidence past (0.4-0.7), alternatives bering
-4. Umuman ko'rinmasa: found=false
+4. ISHONCH < 0.40 BO'LSA: {"found": false, "reason": "Aniq tanib bo'lmadi — yaxshiroq rasm kerak"}
 
 === MUHIM FARQLAR ===
 ISIRIQ (Peganum harmala) — ingichka ikki qayta patsimon barg, OQ 5-bargli gul, dumaloq meva
@@ -50,16 +65,15 @@ ARCHA (Juniperus) — IGNABARG + KO'K MEVA
 SAKSOVUL (Haloxylon) — tikansiz bo'g'imli cho'l daraxti
 
 === FORMAT — faqat JSON ===
+Topilsa:
 {
-  "found": true/false,
-  "key_features": "Nimani ko'rdingiz?",
+  "found": true,
+  "key_features": "Nimani ko'rdingiz? (barg/gul/pat/...)",
   "name": "O'zbekcha nomi",
   "latin": "Lotincha",
   "category": "giyoh | daraxt | gul | jonivor | qush | ilon | hasharot | qoziqorin",
   "confidence": 0.0-1.0,
-  "alternatives": [
-    {"name": "...", "latin": "...", "confidence": 0.0-1.0, "why": "..."}
-  ],
+  "alternatives": [{"name":"...","latin":"...","confidence":0.0-1.0,"why":"..."}],
   "summary": "1-2 jumla",
   "description": "3-5 jumla",
   "habitat": "...",
@@ -70,7 +84,8 @@ SAKSOVUL (Haloxylon) — tikansiz bo'g'imli cho'l daraxti
   "iucn_status": "LC/NT/VU/EN/CR/NE",
   "regions": "..."
 }
-Aniqlanmasa: {"found": false, "reason": "sabab"}"""
+Topilmasa:
+{"found": false, "reason": "aniq sabab — nima edi rasmda"}"""
 
 
 def _compress(image_bytes: bytes, max_dim: int = 1024, quality: int = 82) -> bytes:

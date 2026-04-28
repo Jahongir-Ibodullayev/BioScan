@@ -54,47 +54,14 @@ class ObservationViewSet(viewsets.ModelViewSet):
         result = identify_species_from_image(image_bytes, mime=photo.content_type or "image/jpeg")
 
         if not result.get("found"):
-            # Fallback — random mock
-            candidates = list(Species.objects.all())
-            if not candidates:
-                return Response(
-                    {"identified": False, "reason": result.get("reason", "AI tanib olmadi")},
-                    status=status.HTTP_200_OK,
-                )
-            picked = random.choice(candidates)
-            confidence = round(random.uniform(0.72, 0.89), 2)
-            obs = None
-            if request.user.is_authenticated:
-                obs = Observation.objects.create(
-                    user=request.user,
-                    species=picked,
-                    photo=photo,
-                    ai_confidence=confidence,
-                    latitude=req.validated_data.get("latitude"),
-                    longitude=req.validated_data.get("longitude"),
-                )
-            return Response({
-                "identified": True,
-                "fallback": True,
-                "species": {
-                    "slug": picked.slug,
-                    "name": picked.name,
-                    "latin": picked.latin,
-                    "category": picked.category,
-                    "summary": picked.summary,
-                    "description": picked.description,
-                    "habitat": picked.habitat,
-                    "uses": picked.uses,
-                    "warnings": picked.warnings,
-                    "first_aid": picked.first_aid,
-                    "red_book": picked.red_book,
-                    "iucn_status": picked.iucn_status,
-                    "regions": picked.regions,
-                    "picture": picked.image_url or (request.build_absolute_uri(picked.image.url) if picked.image else None),
+            # AI ishonchsiz — TUR YO'Q, foydalanuvchiga rost gap aytamiz (random fallback EMAS)
+            return Response(
+                {
+                    "identified": False,
+                    "reason": result.get("reason") or "Rasmda biologik tur topilmadi",
                 },
-                "confidence": confidence,
-                "observation_id": obs.id if obs else None,
-            })
+                status=status.HTTP_200_OK,
+            )
 
         # 2. Groq javobi — Species'ni yangilash yoki yaratish
         latin = (result.get("latin") or "").strip()

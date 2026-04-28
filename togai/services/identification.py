@@ -96,15 +96,11 @@ def _to_detail(species: Any, preview_url: str | None = None) -> SpeciesDetail:
     )
 
 
-def _random_fallback_detail() -> SpeciesDetail | None:
-    """Pick a random species from local DB when vision fails."""
-    import random
-    from catalog.models import Species
-    candidates = list(Species.objects.all()[:100])
-    if not candidates:
-        return None
-    sp = random.choice(candidates)
-    return _to_detail(sp)
+# Confidence floor — past confidence bilan tur "topildi" deb hisoblamasin
+MIN_CONFIDENCE = 0.40
+
+# Biologik kategoriya — boshqa hech narsa qabul qilinmaydi
+VALID_CATEGORIES = {"giyoh", "daraxt", "gul", "jonivor", "qush", "ilon", "hasharot", "qoziqorin", "baliq"}
 
 
 def identify_from_image(
@@ -125,21 +121,47 @@ def identify_from_image(
     try:
         ai, model_used = vision.identify(image_bytes, mime=mime)
     except (VisionModelError, ImageProcessingError) as e:
-        log.warning("identify: vision failed (%s) — falling back to local random", e)
-        fallback = _random_fallback_detail()
+        log.warning("identify: vision failed (%s)", e)
         return IdentificationResult(
-            found=bool(fallback),
-            primary=fallback,
-            fallback=True,
-            confidence=0.6 if fallback else 0.0,
-            reason=str(e) if not fallback else "",
+            found=False,
+            reason="AI xizmati hozircha mavjud emas — qaytadan urinib ko'ring",
             model_used="",
         )
 
+    # AI explicitly said "not found" — respect that
     if not ai.get("found"):
         return IdentificationResult(
             found=False,
-            reason=ai.get("reason") or "AI tanib olmadi",
+            reason=ai.get("reason") or "Rasmda biologik tur topilmadi",
+            model_used=model_used,
+        )
+
+    # GUARD: confidence too low → reject (biologik bo'lmagan rasmda AI past confidence beradi)
+    confidence = float(ai.get("confidence") or 0.0)
+    if confidence < MIN_CONFIDENCE:
+        log.info("identify: rejecting low-confidence result (%.2f < %.2f) latin=%s",
+                 confidence, MIN_CONFIDENCE, ai.get("latin"))
+        return IdentificationResult(
+            found=False,
+            reason=f"Aniq tanib bo'lmadi (ishonch {confidence:.0%}) — yaxshiroq rasm kerak",
+            model_used=model_used,
+        )
+
+    # GUARD: must have a Latin name (real species, not random label)
+    latin = (ai.get("latin") or "").strip()
+    if not latin or len(latin) < 4 or " " not in latin and len(latin) < 5:
+        return IdentificationResult(
+            found=False,
+            reason="Tur nomi aniq emas — boshqa rakurs bilan urinib ko'ring",
+            model_used=model_used,
+        )
+
+    # GUARD: category must be biological
+    category = (ai.get("category") or "").lower().strip()
+    if category and category not in VALID_CATEGORIES:
+        return IdentificationResult(
+            found=False,
+            reason="Bu biologik tur emas",
             model_used=model_used,
         )
 
@@ -159,8 +181,7 @@ def identify_from_image(
     detail.warnings = ai.get("warnings") or detail.warnings
     detail.first_aid = ai.get("first_aid") or detail.first_aid
 
-    # 4. Observation (only if logged in)
-    confidence = float(ai.get("confidence") or 0.8)
+    # 4. Observation (only if logged in) — confidence already validated above
     if user is not None and getattr(user, "is_authenticated", False):
         try:
             from observations.models import Observation

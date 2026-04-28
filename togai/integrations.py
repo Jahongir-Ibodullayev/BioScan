@@ -33,6 +33,23 @@ def _compress_image(image_bytes: bytes, max_dim: int = 1024, quality: int = 82) 
 # ------------------------------------------------------------------
 GROQ_VISION_PROMPT = """Siz Markaziy Osiyo flora/faunasi bo'yicha ekspert biologsiz.
 
+=== AVVAL — RASMDAGI NIMANI ANIQLA ===
+Bu rasm quyidagilardan qaysi biri?
+  (A) Tirik organizm: o'simlik, hayvon, qush, hasharot, qo'ziqorin, baliq, ilon
+  (B) BIOLOGIK BO'LMAGAN: hujjat, matn, ekran skrinshot, telefon, kompyuter,
+      mashina, bino, mebel, kiyim, tayyor ovqat, odam yuzi, logo, illustratsiya
+  (C) Sifatsiz/qorong'i/buzilgan rasm
+
+(B) yoki (C) bo'lsa — XATO! Hech qanday tur nomi BERMA. Quyidagini qaytar:
+  {"found": false, "reason": "Rasmda biologik tur topilmadi"}
+yoki
+  {"found": false, "reason": "Hujjat/matn rasmi — biologik tur emas"}
+yoki
+  {"found": false, "reason": "Rasm sifati past — qaytadan urinib ko'ring"}
+
+ISHONCHSIZ BO'LSA HAM (confidence < 0.40) — found=false qaytar.
+TAXMIN QILMA. ISHONMASANG — TAN OL!
+
 === #1 QOIDA — HAMMA MATN O'ZBEK TILIDA! ===
 
 JSON dagi HAR BIR matn maydoni (name, summary, description, habitat, uses,
@@ -196,6 +213,25 @@ def identify_species_from_image(image_bytes: bytes, mime: str = "image/jpeg") ->
             content = data["choices"][0]["message"]["content"]
             parsed = json.loads(content)
             log.info("✓ Groq (%s) identified: %s (conf=%.2f)", model, parsed.get("latin"), parsed.get("confidence", 0))
+
+            # GUARD: confidence floor — past confidence past = "topilmadi"
+            if parsed.get("found"):
+                conf = float(parsed.get("confidence") or 0.0)
+                if conf < 0.40:
+                    log.info("rejecting low-confidence (%.2f) AI guess: %s", conf, parsed.get("latin"))
+                    return {
+                        "found": False,
+                        "reason": f"Aniq tanib bo'lmadi (ishonch {int(conf*100)}%) — yaxshiroq rasm kerak",
+                    }
+                # GUARD: kategoriya biologik bo'lishi shart
+                cat = (parsed.get("category") or "").lower().strip()
+                valid_cats = {"giyoh", "daraxt", "gul", "jonivor", "qush", "ilon", "hasharot", "qoziqorin", "baliq"}
+                if cat and cat not in valid_cats:
+                    return {"found": False, "reason": "Bu biologik tur emas"}
+                # GUARD: lotincha nom haqiqiy ko'rinishda bo'lishi kerak
+                latin = (parsed.get("latin") or "").strip()
+                if not latin or len(latin) < 4:
+                    return {"found": False, "reason": "Tur nomi aniq emas — boshqa rakurs bilan urinib ko'ring"}
             return parsed
         except (requests.RequestException, KeyError, json.JSONDecodeError) as e:
             log.exception("Groq %s error: %s", model, e)
