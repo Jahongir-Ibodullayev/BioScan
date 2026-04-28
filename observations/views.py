@@ -75,6 +75,15 @@ class ObservationViewSet(viewsets.ModelViewSet):
             # also use canonical latin from vocab (more accurate than AI)
             if not latin or latin.lower() != uz_lookup["latin"].lower():
                 latin = uz_lookup["latin"]
+        else:
+            # Vocab'da yo'q — AI tarjimon bilan ingliz nomni o'zbekchaga
+            try:
+                from togai.services.translate import translate_one
+                tr = translate_one(name, latin)
+                if tr and tr != name:
+                    name = tr
+            except Exception:
+                pass
 
         slug = slugify(latin or name) or f"tur-{random.randint(1000, 9999)}"
 

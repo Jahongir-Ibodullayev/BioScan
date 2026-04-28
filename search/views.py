@@ -253,10 +253,26 @@ def taxon_detail(request, taxon_id: int):
         if p.get("photo", {}).get("medium_url")
     ]
     default = t.get("default_photo") or {}
+
+    # UZ name resolution: vocab → AI translate fallback
+    latin_n = t.get("name") or ""
+    raw_common = t.get("preferred_common_name") or t.get("english_common_name")
+    uz_common = raw_common
+    try:
+        from .uz_vocab import resolve_latin
+        ov = resolve_latin(latin_n)
+        if ov:
+            uz_common = ov["uz"]
+        elif raw_common:
+            from togai.services.translate import translate_one
+            uz_common = translate_one(raw_common, latin_n)
+    except Exception:
+        pass
+
     return Response({
         "id": t.get("id"),
-        "name": t.get("name"),
-        "preferred_common_name": t.get("preferred_common_name") or t.get("english_common_name"),
+        "name": latin_n,
+        "preferred_common_name": uz_common,
         "rank": t.get("rank"),
         "iconic_taxon_name": t.get("iconic_taxon_name"),
         "observations_count": t.get("observations_count"),
@@ -364,7 +380,29 @@ def browse(request):
         if not latin_name:
             return fallback
         ov = resolve_latin(latin_name)
-        return ov["uz"] if ov else fallback
+        if ov:
+            return ov["uz"]
+        return fallback
+
+    def _post_translate_results(rows: list[dict]) -> None:
+        """Vocab'da topilmagan ingliz nomlarini AI orqali toplab tarjima qil (in-place)."""
+        try:
+            from togai.services.translate import translate_batch
+        except Exception:
+            return
+        items = [(r.get("common_name") or "", r.get("name") or "")
+                 for r in rows if r.get("common_name")]
+        if not items:
+            return
+        try:
+            tr = translate_batch(items)
+            for r in rows:
+                cn = r.get("common_name")
+                if cn and cn in tr:
+                    r["common_name"] = tr[cn]
+        except Exception as e:
+            import logging as _lg
+            _lg.getLogger(__name__).warning("post-translate failed: %s", e)
 
     # Joy yoki Qizil kitob bo'lsa — /observations/species_counts (iNat shunday ishlaydi)
     if is_redbook or is_uz:
@@ -410,6 +448,7 @@ def browse(request):
                 "photo": photo.get("medium_url") or photo.get("original_url"),
                 "attribution": photo.get("attribution"),
             })
+        _post_translate_results(results)
         return Response({
             "total": data.get("total_results"),
             "filters": {"category": cat or None, "redbook": is_redbook,
@@ -464,6 +503,7 @@ def browse(request):
             "photo": photo.get("medium_url") or photo.get("original_url"),
             "attribution": photo.get("attribution"),
         })
+    _post_translate_results(results)
     return Response({
         "total": data.get("total_results"),
         "filters": {"category": cat or None, "redbook": False,

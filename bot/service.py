@@ -36,6 +36,15 @@ def _sync_identify(photo_bytes: bytes, mime: str) -> tuple[Species | None, float
     if uz_lookup:
         name = uz_lookup["uz"]
         latin = uz_lookup["latin"]
+    else:
+        # Vocab'da yo'q — agar AI ingliz nom bergan bo'lsa, AI tarjima qil
+        try:
+            from togai.services.translate import translate_one
+            tr = translate_one(name, latin)
+            if tr and tr != name:
+                name = tr
+        except Exception:
+            pass
 
     if not latin and not name:
         return None, 0.0
