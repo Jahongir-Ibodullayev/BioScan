@@ -19,7 +19,7 @@ from django.core.cache import cache
 
 log = logging.getLogger(__name__)
 
-CACHE_NS = "tr:uz:v2"
+CACHE_NS = "tr:uz:v4"
 CACHE_TTL = 60 * 60 * 24 * 30  # 30 kun
 NEG_TTL = 60 * 60 * 24  # tarjima topilmasa 1 kun cache
 
