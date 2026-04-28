@@ -23,20 +23,31 @@ CACHE_NS = "tr:uz:v2"
 CACHE_TTL = 60 * 60 * 24 * 30  # 30 kun
 NEG_TTL = 60 * 60 * 24  # tarjima topilmasa 1 kun cache
 
-# Bularga tarjima kerak emas — allaqachon o'zbekcha
-_UZ_INDICATORS = re.compile(r"[ўғҳқўйшгҳ]|[A-Za-z]'", re.IGNORECASE)
+# O'zbek-spec apostrofli bo'g'inlar (g', o', n') — faqat shular bor bo'lsa = uz
+_UZ_DIGRAPHS = re.compile(r"(g'|o'|G'|O')")
+# Cyrillic uzbek belgilari
+_CYRILLIC_UZ = re.compile(r"[ўғҳқйшғҳЎҒҲҚЙШ]")
+# Ingliz so'zlari ('s, 'd, 'll)
+_EN_CONTRACT = re.compile(r"[a-zA-Z]'(s|d|t|ll|re|ve|m)\b")
 _LATIN_RE = re.compile(r"^[A-Z][a-z]+\s+[a-z]+$")
 
 
 def _is_already_uz(text: str) -> bool:
-    """Heuristik: matn allaqachon o'zbekchami?"""
+    """Heuristik: matn allaqachon o'zbekchami?
+
+    Faqat aniq UZ-spec belgilari bo'lganda True (g'/o'/cyrillic).
+    "Turk's cap" kabi inglizcha apostroflar tarjimaga yuboriladi.
+    """
     if not text:
         return True
-    # Apostroflar (g', o', sh) va o'zbekcha alifbosi belgilari
-    if "'" in text and any(c.isalpha() for c in text):
+    # Cyrillic Uzbek — bemalol UZ
+    if _CYRILLIC_UZ.search(text):
         return True
-    # Cyrillic Uzbek
-    if _UZ_INDICATORS.search(text):
+    # Ingliz contraction (Turk's, doesn't, etc.) — UZ EMAS
+    if _EN_CONTRACT.search(text):
+        return False
+    # Latin Uzbek apostroflar (g', o', n') — UZ
+    if _UZ_DIGRAPHS.search(text):
         return True
     return False
 
