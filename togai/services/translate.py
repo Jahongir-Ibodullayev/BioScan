@@ -117,7 +117,10 @@ def translate_one(name: str, latin: str = "") -> str:
     # 3. AI tarjima
     try:
         translated = _ai_translate_single(name, latin)
-        if translated and translated != name:
+        # Safety net: AI tarjimasi hali ham ingliz ko'rinishida bo'lsa → genus
+        if translated and (translated.lower() == name.lower() or _looks_english(translated)):
+            translated = latin.split()[0].lower() if latin else ""
+        if translated and translated.lower() != name.lower() and not _looks_english(translated):
             cache.set(key, translated, CACHE_TTL)
             return translated
         cache.set(key, "", NEG_TTL)
