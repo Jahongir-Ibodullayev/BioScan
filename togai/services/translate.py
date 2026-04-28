@@ -147,14 +147,15 @@ def translate_batch(items: list[tuple[str, str]]) -> dict[str, str]:
     if pending:
         try:
             ai_map = _ai_translate_batch(pending)
+            # Case-insensitive lookup
+            ai_map_lc = {k.lower(): v for k, v in ai_map.items()}
             for orig_name, latin in pending:
-                tr = (ai_map.get(orig_name) or "").strip()
+                tr = (ai_map.get(orig_name) or ai_map_lc.get(orig_name.lower()) or "").strip()
                 key = _cache_key(orig_name, latin)
                 # AI tarjima qilmagan/o'zini qaytargan → Latin genus'ga fallback
                 if not tr or tr.lower() == orig_name.lower():
                     if latin:
-                        genus = latin.split()[0]
-                        tr = genus
+                        tr = latin.split()[0].lower()
                 if tr and tr.lower() != orig_name.lower():
                     cache.set(key, tr, CACHE_TTL)
                     out[orig_name] = tr
