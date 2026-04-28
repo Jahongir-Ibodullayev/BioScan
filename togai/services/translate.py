@@ -177,15 +177,21 @@ def translate_batch(items: list[tuple[str, str]]) -> dict[str, str]:
     if pending:
         try:
             ai_map = _ai_translate_batch(pending)
-            # Case-insensitive lookup
             ai_map_lc = {k.lower(): v for k, v in ai_map.items()}
             for orig_name, latin in pending:
                 tr = (ai_map.get(orig_name) or ai_map_lc.get(orig_name.lower()) or "").strip()
                 key = _cache_key(orig_name, latin)
-                # AI tarjima qilmagan/o'zini qaytargan → Latin genus'ga fallback
+
+                # 1) Bo'sh yoki orig'ga teng → genus
                 if not tr or tr.lower() == orig_name.lower():
                     if latin:
                         tr = latin.split()[0].lower()
+
+                # 2) Tarjima HALI HAM ingliz ko'rinishida → genus (final safety)
+                if tr and _looks_english(tr) and latin:
+                    log.info("post-fallback: %r still looks english → genus", tr)
+                    tr = latin.split()[0].lower()
+
                 if tr and tr.lower() != orig_name.lower():
                     cache.set(key, tr, CACHE_TTL)
                     out[orig_name] = tr
@@ -196,6 +202,13 @@ def translate_batch(items: list[tuple[str, str]]) -> dict[str, str]:
             log.warning("translate_batch failed (%d items): %s", len(pending), e)
             for orig_name, _ in pending:
                 out[orig_name] = orig_name
+
+    # FINAL SAFETY NET: agar har qanday output hali ham `_looks_english` bo'lsa,
+    # uni latin genus bilan almashtir
+    for orig_name, latin in items:
+        val = out.get(orig_name)
+        if val and _looks_english(val) and latin:
+            out[orig_name] = latin.split()[0].lower()
 
     return out
 
