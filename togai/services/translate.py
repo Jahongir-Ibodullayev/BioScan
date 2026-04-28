@@ -147,10 +147,15 @@ def translate_batch(items: list[tuple[str, str]]) -> dict[str, str]:
     if pending:
         try:
             ai_map = _ai_translate_batch(pending)
-            for orig_name, _ in pending:
-                tr = ai_map.get(orig_name) or ""
-                key = _cache_key(orig_name, "")
-                if tr and tr != orig_name:
+            for orig_name, latin in pending:
+                tr = (ai_map.get(orig_name) or "").strip()
+                key = _cache_key(orig_name, latin)
+                # AI tarjima qilmagan/o'zini qaytargan → Latin genus'ga fallback
+                if not tr or tr.lower() == orig_name.lower():
+                    if latin:
+                        genus = latin.split()[0]
+                        tr = genus
+                if tr and tr.lower() != orig_name.lower():
                     cache.set(key, tr, CACHE_TTL)
                     out[orig_name] = tr
                 else:
@@ -211,10 +216,14 @@ def _ai_translate_batch(items: list[tuple[str, str]]) -> dict[str, str]:
     # Prompt: list of objects, expect list back
     body_items = [{"name": n, "latin": l} for n, l in items[:40]]  # max 40 per call
     sys_prompt = (
-        "Siz biolog tarjimon. Sizga ingliz/rus turlar nomi ro'yxati keladi. "
-        "Har birini o'zbek tabiat nomiga tarjima qiling (1-3 so'z). "
-        "O'zbek nomi bo'lmasa — lotincha jins nomidan foydalaning. "
-        "FAQAT JSON qaytaring: {\"results\": [{\"name\":\"...\", \"uz\":\"...\"}]}. Boshqa matn yo'q."
+        "Siz biolog tarjimon. Sizga ingliz/rus turlar nomi ro'yxati keladi.\n"
+        "VAZIFA: Har bir nomni o'zbek tabiat nomiga AYLANTIRING (1-3 so'z, kichik harf bilan).\n"
+        "QOIDA:\n"
+        "1. NIKADI ingliz/rus nomni QAYTARMA — har doim O'zbek so'z bering\n"
+        "2. O'zbek tabiat nomi bo'lmasa: lotincha jins nomi (Liriodendron → 'liriodendron')\n"
+        "3. Yoki tipini bering: 'tuliptree' bo'lsa → 'lola daraxti'; 'sparrow' → 'chumchuq turi'\n"
+        "4. Bir necha so'zli inglizcha bo'lsa: 'American tuliptree' → 'amerika lola daraxti'\n"
+        "FAQAT JSON: {\"results\":[{\"name\":\"input nom\",\"uz\":\"o'zbekcha\"}]}. Boshqa matn yo'q."
     )
 
     r = requests.post(
