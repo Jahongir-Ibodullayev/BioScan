@@ -262,14 +262,20 @@ def taxon_detail(request, taxon_id: int):
     uz_summary = raw_summary
     try:
         from .uz_vocab import resolve_latin
-        from togai.services.translate import translate_one, ensure_uz
+        from togai.services.translate import translate_one, ensure_uz, _looks_english
         ov = resolve_latin(latin_n)
         if ov:
             uz_common = ov["uz"]
         elif raw_common:
             uz_common = translate_one(raw_common, latin_n)
+        # FINAL SAFETY: agar uz_common hali ham _looks_english → genus
+        if uz_common and _looks_english(uz_common) and latin_n:
+            uz_common = latin_n.split()[0].lower()
         if raw_summary:
             uz_summary = ensure_uz(raw_summary, kind="block")
+        if uz_summary and _looks_english(uz_summary[:120]):
+            # Wikipedia ingliz qoldi → bo'sh qaytar (frontend Wikipedia link beradi)
+            uz_summary = ""
     except Exception:
         pass
 
