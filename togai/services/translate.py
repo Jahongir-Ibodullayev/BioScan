@@ -19,7 +19,7 @@ from django.core.cache import cache
 
 log = logging.getLogger(__name__)
 
-CACHE_NS = "tr:uz:v4"
+CACHE_NS = "tr:uz:v5"
 CACHE_TTL = 60 * 60 * 24 * 30  # 30 kun
 NEG_TTL = 60 * 60 * 24  # tarjima topilmasa 1 kun cache
 
@@ -103,16 +103,15 @@ def translate_one(name: str, latin: str = "") -> str:
         except Exception:
             pass
 
-    # 2. Cache tekshir (English qoldiqlarni bypass qiladi)
+    # 2. Cache tekshir (English qoldiqlarni bypass qiladi, negative cache ham)
     key = _cache_key(name, latin)
     cached = cache.get(key)
-    if cached is not None and cached != "":
+    if cached:
         if _looks_english(cached):
             cache.delete(key)
         else:
             return cached
-    elif cached == "":
-        return name
+    # cached == "" yoki None → AI'ga o'tamiz (negative cache shortcut yo'q)
 
     # 3. AI tarjima
     try:
