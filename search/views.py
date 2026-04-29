@@ -208,6 +208,23 @@ def taxa_search(request):
             "attribution": photo.get("attribution"),
         })
 
+    # AI tarjima: vocab'da yo'qlar uchun (Ruddy Turnstone, Common Hibiscus, h.k.)
+    try:
+        from togai.services.translate import translate_batch, _looks_english
+        items = [(r["preferred_common_name"], r["name"]) for r in results
+                 if r.get("preferred_common_name")]
+        if items:
+            tr_map = translate_batch(items)
+            for r in results:
+                cn = r.get("preferred_common_name")
+                if cn and cn in tr_map:
+                    r["preferred_common_name"] = tr_map[cn]
+                # Final guard: agar hali ham _looks_english bo'lsa → genus
+                if r.get("preferred_common_name") and _looks_english(r["preferred_common_name"]):
+                    r["preferred_common_name"] = r["name"].split()[0].lower()
+    except Exception:
+        pass
+
     # 3) Relevance filter: if UZ translated, keep only results where genus matches
     if is_uz_translated and q_effective:
         target_genus = q_effective.split()[0].lower()
