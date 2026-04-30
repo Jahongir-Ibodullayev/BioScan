@@ -288,11 +288,20 @@ def taxon_detail(request, taxon_id: int):
         # FINAL SAFETY: agar uz_common hali ham _looks_english → genus
         if uz_common and _looks_english(uz_common) and latin_n:
             uz_common = latin_n.split()[0].lower()
-        if raw_summary:
+
+        # Wikipedia summary: iNat ingliz tilidagi summary'ni qaytaradi.
+        # Yaxshiroq: UZ/RU/EN cascade orqali yaxshi extract topamiz.
+        wiki_best = _fetch_wikipedia_best(latin_n, uz_common or raw_common or "")
+        if wiki_best and wiki_best.get("extract"):
+            extract = wiki_best["extract"]
+            # Agar UZ emas bo'lsa, AI bilan tarjima
+            if wiki_best.get("lang") != "uz":
+                extract = ensure_uz(extract, kind="block")
+            uz_summary = extract
+        elif raw_summary:
             uz_summary = ensure_uz(raw_summary, kind="block")
-        if uz_summary and _looks_english(uz_summary[:120]):
-            # Wikipedia ingliz qoldi → bo'sh qaytar (frontend Wikipedia link beradi)
-            uz_summary = ""
+            if uz_summary and _looks_english(uz_summary[:120]):
+                uz_summary = ""
     except Exception:
         pass
 
@@ -719,6 +728,86 @@ def _wiki_one(lang: str, title: str) -> dict | None:
         return None
 
 
+def _wiki_search(lang: str, query: str) -> str | None:
+    """Wikipedia search API — bitta nomdan eng yaxshi article title topadi.
+
+    `Arenaria interpres` → API qaytaradi: 'Ruddy turnstone' (sahifa nomi)
+    """
+    if not query:
+        return None
+    key = _safe_cache_key("wikisearch", f"{lang}:{query}", {})
+    cached = cache.get(key)
+    if cached is not None:
+        return cached or None
+    try:
+        host = "https://uz.wikipedia.org" if lang == "uz" else f"https://{lang}.wikipedia.org"
+        r = requests.get(
+            f"{host}/w/api.php",
+            params={
+                "action": "query",
+                "list": "search",
+                "srsearch": query,
+                "srlimit": 1,
+                "format": "json",
+            },
+            headers={"User-Agent": UA},
+            timeout=TIMEOUT,
+        )
+        r.raise_for_status()
+        data = r.json()
+        hits = data.get("query", {}).get("search") or []
+        if hits:
+            title = hits[0].get("title")
+            if title:
+                cache.set(key, title, 60 * 60 * 24)
+                return title
+        cache.set(key, "", 60 * 60)
+        return None
+    except requests.RequestException:
+        return None
+
+
+def _fetch_wikipedia_best(name: str, common: str = "") -> dict | None:
+    """Multi-strategy Wikipedia fetch: UZ → RU → EN, har xil title variantlari + search API.
+
+    1. Try direct page lookup with common name + latin (UZ then RU then EN)
+    2. If all fail, use Wikipedia search API to find best title
+    3. Return first non-empty extract
+    """
+    candidates = []
+    if common:
+        candidates.append(common)
+    if name:
+        candidates.append(name)
+        # Genus-only fallback (e.g., 'Arenaria' from 'Arenaria interpres')
+        genus = name.split()[0]
+        if genus and genus != name:
+            candidates.append(genus)
+
+    # Strategy 1: direct title lookup
+    for lang in ["uz", "ru", "en"]:
+        for title in candidates:
+            if not title:
+                continue
+            w = _wiki_one(lang, title.replace(" ", "_"))
+            if w and w.get("extract"):
+                return w
+
+    # Strategy 2: search API to find correct title, then fetch
+    for lang in ["uz", "ru", "en"]:
+        for q in candidates:
+            if not q:
+                continue
+            found_title = _wiki_search(lang, q)
+            if not found_title:
+                continue
+            w = _wiki_one(lang, found_title.replace(" ", "_"))
+            if w and w.get("extract"):
+                return w
+
+    return None
+
+
 @api_view(["GET"])
 @permission_classes([permissions.AllowAny])
 def ai_help(request):
@@ -803,16 +892,8 @@ def enrich(request):
     if cached:
         return Response(cached)
 
-    # 1. Wikipedia (multi-language cascade)
-    wiki = None
-    for lang, title in [("uz", common or name), ("ru", common or name),
-                        ("en", name), ("en", common)]:
-        if not title:
-            continue
-        w = _wiki_one(lang, title.replace(" ", "_"))
-        if w and w.get("extract"):
-            wiki = w
-            break
+    # 1. Wikipedia (multi-strategy: UZ → RU → EN + search API fallback)
+    wiki = _fetch_wikipedia_best(name, common)
 
     # 2. AI structured summary (tavsif/foydasi/xavfi/birinchi yordam)
     from togai.integrations import groq_chat
@@ -845,11 +926,12 @@ def enrich(request):
 
     system = (
         "Sen Tog'AI yordamchisisan — FAQAT biologiya/tabiat ekspertisan. "
-        "Sen BIOLOGIK TURLAR haqida yozasan — o'simlik, hayvon, qush, baliq, hasharot, qo'ziqorin. "
-        "HECH QACHON texnika, mashina, poyezd, mahsulot, brend haqida yozma — "
-        "xalq nomi poyezd/mashina bilan bir xil bo'lsa ham, bu BIOLOGIK TUR haqida gap ketyapti. "
-        "Faqat Wikipedia'dagi haqiqiy biologik ma'lumotdan foydalan. "
-        "Bilmasang — 'Ma'lumot yetarli emas' deb yoz. Yolg'on/taxmin yozma."
+        "BIOLOGIK TURLAR haqida yozasan — o'simlik, hayvon, qush, baliq, hasharot, qo'ziqorin. "
+        "Asosiy QOIDA: Quyida berilgan Wikipedia matnidan foydalan. "
+        "Wikipedia'da yo'q narsani O'YLAB CHIQARMA. "
+        "Foydalanuvchining xavfsizligi muhim — zaharli/xavfli xususiyatlarni faqat asosli bo'lsa yoz. "
+        "HECH QACHON texnika/mashina/poyezd/brend haqida yozma — bu jonzot. "
+        "Bilmasang — 'Ma'lumot yetarli emas' deb yoz. Yolg'on yozish FOYDALANUVCHILAR HAYOTIGA XAVFLI."
     )
 
     prompt = (
@@ -871,7 +953,22 @@ def enrich(request):
 
     sections = _parse_sections(ai_text)
 
-    description = sections.get("tavsif") or (wiki.get("extract") if wiki else "")
+    # Description: AI'ning TAVSIF bo'limi → Wikipedia extract → "Ma'lumot kam"
+    ai_desc = sections.get("tavsif") or ""
+    wiki_extract = wiki.get("extract") if wiki else ""
+
+    # AI bo'sh yoki "yetarli emas" desa, Wikipedia matnini birinchi tanlanadigan qil
+    if not ai_desc or "yetarli emas" in ai_desc.lower() or "ma'lumot yo'q" in ai_desc.lower():
+        description = wiki_extract or ai_desc
+    else:
+        # AI tavsif + Wikipedia kontekst (agar Wiki uzunroq bo'lsa)
+        description = ai_desc
+        if wiki_extract and len(wiki_extract) > len(ai_desc) * 1.5:
+            description = wiki_extract  # Wikipedia ko'proq ma'lumotli
+
+    if not description:
+        description = f"Bu {category_hint.lower()} haqida hozircha to'liq ma'lumot to'planmagan. Ilmiy nomi: {name}."
+
     uses = sections.get("foydasi") or ""
     warnings = sections.get("xavfi") or ""
     first_aid = sections.get("birinchi_yordam") or ""
