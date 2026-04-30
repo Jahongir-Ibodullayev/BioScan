@@ -19,14 +19,18 @@ from django.core.cache import cache
 
 log = logging.getLogger(__name__)
 
-CACHE_NS = "tr:uz:v5"
+CACHE_NS = "tr:uz:v6"
 CACHE_TTL = 60 * 60 * 24 * 30  # 30 kun
 NEG_TTL = 60 * 60 * 24  # tarjima topilmasa 1 kun cache
 
 # O'zbek-spec apostrofli bo'g'inlar (g', o', n') — faqat shular bor bo'lsa = uz
 _UZ_DIGRAPHS = re.compile(r"(g'|o'|G'|O')")
-# Cyrillic uzbek belgilari
-_CYRILLIC_UZ = re.compile(r"[ўғҳқйшғҳЎҒҲҚЙШ]")
+# Cyrillic uzbek-spec belgilari (Russian'da YO'Q)
+_CYRILLIC_UZ_ONLY = re.compile(r"[ўғҳқЎҒҲҚ]")
+# Russian-spec belgilar (Uzbek'da YO'Q) — bularni topsa = Russian → tarjima
+_CYRILLIC_RU_ONLY = re.compile(r"[ыэЫЭъЪ]")
+# Cyrillic umuman bormi (har qanday slavyan)
+_CYRILLIC_ANY = re.compile(r"[Ѐ-ӿ]")
 # Ingliz so'zlari ('s, 'd, 'll)
 _EN_CONTRACT = re.compile(r"[a-zA-Z]'(s|d|t|ll|re|ve|m)\b")
 _LATIN_RE = re.compile(r"^[A-Z][a-z]+\s+[a-z]+$")
@@ -35,20 +39,30 @@ _LATIN_RE = re.compile(r"^[A-Z][a-z]+\s+[a-z]+$")
 def _is_already_uz(text: str) -> bool:
     """Heuristik: matn allaqachon o'zbekchami?
 
-    Faqat aniq UZ-spec belgilari bo'lganda True (g'/o'/cyrillic).
-    "Turk's cap" kabi inglizcha apostroflar tarjimaga yuboriladi.
+    - ы/э/ъ topilsa → Russian (UZ EMAS — tarjima qilinadi)
+    - ў/ғ/ҳ/қ topilsa → UZ Cyrillic
+    - g'/o' digraflari topilsa → UZ Latin
+    - Inglizcha 's/'d/'ll → UZ EMAS
     """
     if not text:
         return True
-    # Cyrillic Uzbek — bemalol UZ
-    if _CYRILLIC_UZ.search(text):
+    # Russian belgisi → UZ emas
+    if _CYRILLIC_RU_ONLY.search(text):
+        return False
+    # UZ Cyrillic belgisi → UZ
+    if _CYRILLIC_UZ_ONLY.search(text):
         return True
+    # Cyrillic bor lekin UZ-spec yo'q → ehtimol Russian (zaif belgi)
     # Ingliz contraction (Turk's, doesn't, etc.) — UZ EMAS
     if _EN_CONTRACT.search(text):
         return False
     # Latin Uzbek apostroflar (g', o', n') — UZ
     if _UZ_DIGRAPHS.search(text):
         return True
+    # Hech qanday belgi yo'q — Latin alifbosida bo'lsa, ingliz/uzlatin bo'lishi mumkin
+    # Cyrillic bor bo'lib UZ-spec yo'q bo'lsa — Russian deb hisoblaymiz (tarjima qilamiz)
+    if _CYRILLIC_ANY.search(text):
+        return False
     return False
 
 
@@ -61,7 +75,7 @@ def _looks_english(text: str) -> bool:
     if not text:
         return False
     # UZ belgisi bo'lsa — ingliz emas
-    if _CYRILLIC_UZ.search(text) or _UZ_DIGRAPHS.search(text):
+    if _CYRILLIC_UZ_ONLY.search(text) or _UZ_DIGRAPHS.search(text):
         return False
     # ASCII bo'lib, ingliz so'zlari tarkibida bo'lsa — ingliz
     if all(c.isascii() for c in text) and _EN_FILLER.search(text):
