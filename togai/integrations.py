@@ -8,7 +8,6 @@ import base64
 import io
 import json
 import logging
-import random
 
 import requests
 from django.conf import settings
@@ -310,54 +309,7 @@ def send_sms(phone: str, text: str) -> bool:
 
 
 # ------------------------------------------------------------------
-# Plant.id — AI image recognition
-# ------------------------------------------------------------------
-def identify_plant(image_bytes: bytes) -> dict:
-    """Plant.id API orqali rasmdagi turni aniqlash.
-
-    Return: {"species_name": str, "latin": str, "confidence": float, "meta": dict}
-    """
-    if not settings.PLANT_ID_API_KEY:
-        # Mock — random confidence
-        log.info("Plant.id key yo'q — mock javob")
-        return {
-            "species_name": None,
-            "latin": None,
-            "confidence": round(random.uniform(0.82, 0.99), 2),
-            "meta": {"mock": True},
-        }
-
-    try:
-        r = requests.post(
-            "https://api.plant.id/v2/identify",
-            json={
-                "api_key": settings.PLANT_ID_API_KEY,
-                "images": [base64.b64encode(image_bytes).decode()],
-                "modifiers": ["crops_fast", "similar_images"],
-                "plant_language": "en",
-                "plant_details": ["common_names", "url", "wiki_description", "taxonomy"],
-            },
-            timeout=30,
-        )
-        r.raise_for_status()
-        data = r.json()
-        suggestions = data.get("suggestions") or []
-        if not suggestions:
-            return {"species_name": None, "latin": None, "confidence": 0.0, "meta": {}}
-        top = suggestions[0]
-        return {
-            "species_name": (top.get("plant_details", {}).get("common_names") or [None])[0],
-            "latin": top.get("plant_name"),
-            "confidence": top.get("probability", 0),
-            "meta": top,
-        }
-    except requests.RequestException as e:
-        log.exception("Plant.id error: %s", e)
-        return {"species_name": None, "latin": None, "confidence": 0.0, "meta": {"error": str(e)}}
-
-
-# ------------------------------------------------------------------
-# AI chat (OpenAI yoki Anthropic)
+# AI chat (OpenAI yoki Anthropic) — legacy fallback, hozirda groq_chat ishlatiladi
 # ------------------------------------------------------------------
 def ai_reply(prompt: str, context: str = "") -> str:
     """Suhbat javobi. API key yo'q bo'lsa — canned."""

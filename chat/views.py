@@ -8,20 +8,19 @@ from togai.integrations import groq_chat
 from .models import Conversation, Message
 from .serializers import AskSerializer, ConversationSerializer, MessageSerializer
 
-CANNED = {
-    "bu qanday": "Rasmga olib yuboring — AI bilan sekundlarda tanib, ishlatilish va xavfsizlik ma'lumotini beraman.",
-    "ilon": "1) Tinch bo'ling, yugurmang. 2) Chaqqan joyni yurakdan pastroq tuting. 3) 103 ga qo'ng'iroq qiling. 4) Kesmang, so'rmang.",
-    "xavf": "Hozirgi joyingizdan yaqin xavf zonalari uchun Xarita bo'limida ko'ring. Jonli yangilanib turadi.",
-    "qizil kitob": "Qizil kitob turlari Kuzatuvlar bo'limida Q.K. belgisi bilan ko'rsatilgan.",
-}
-
-
 def answer_for(text: str) -> str:
-    t = text.lower()
-    for key, reply in CANNED.items():
-        if key in t:
-            return reply
-    return "Savolingiz uchun rahmat! Hozir bu mavzuni o'rganyapman. Yaqin kunlarda aniq javob beraman."
+    """Real AI javob — Groq LLM orqali, Tog'AI flora/fauna konteksti bilan."""
+    system = (
+        "Sen Tog'AI yordamchisisan — Markaziy Osiyo (asosan O'zbekiston) tabiati, "
+        "o'simlik, jonivor, qush, hasharot, qoziqorin va xavfli holatlar bo'yicha ekspert. "
+        "Javobni FAQAT o'zbek tilida, qisqa va aniq (2-4 jumla) ber. "
+        "Bilmasang tan ol — yolg'on yozma, foydalanuvchi sog'lig'iga zarar bo'lishi mumkin. "
+        "Ilon chaqishi, zaharlanish kabi favqulodda holatlarda 103 raqamiga qo'ng'iroq qilishni eslatib o't."
+    )
+    try:
+        return groq_chat(text, system=system)
+    except Exception:
+        return "Hozir AI bilan bog'lana olmadim. Bir oz vaqtdan keyin qayta urinib ko'ring."
 
 
 class ConversationViewSet(viewsets.ModelViewSet):
