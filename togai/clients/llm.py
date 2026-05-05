@@ -49,4 +49,4 @@ def chat(
         return data["choices"][0]["message"]["content"].strip()
     except ExternalServiceError as e:
         log.warning("llm.chat upstream error: %s", e)
-        return "Hozir javob bera olmadim. Qayta urinib ko'ring."
+        return "Hozir javob berolmaadim iltimos keyinroq urini "

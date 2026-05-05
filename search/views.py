@@ -349,6 +349,12 @@ def nearest_observations(request):
         params["lng"] = lng
         if radius:
             params["radius"] = radius
+    else:
+        # Default UZ — boshqa hudud ishlatilmaganda Markaziy Osiyoga cheklanadi
+        # (Ruddy Turnstone Iceland'da emas, Uzbekistan'da chiqsin)
+        place = (request.GET.get("place") or "uz").lower()
+        if place in ("uz", "uzbekistan"):
+            params["place_id"] = UZBEKISTAN_PLACE_ID
 
     try:
         data = _inat_get("/observations", params)
