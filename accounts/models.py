@@ -110,7 +110,7 @@ class OTPCode(models.Model):
         return cls.objects.create(phone=phone, code=code)
 
     def is_valid(self) -> bool:
-        return not self.used and (timezone.now() - self.created_at) < timedelta(minutes=10)
+        return not self.used and (timezone.now() - self.created_at) < timedelta(minutes=2)
 
     def __str__(self):
         return f"{self.phone} · ******"

@@ -16,6 +16,55 @@ from PIL import Image
 log = logging.getLogger(__name__)
 
 
+# ------------------------------------------------------------------
+# Universal AI client (OpenRouter > Groq fallback)
+# ------------------------------------------------------------------
+# OpenRouter Groq bilan to'la mos OpenAI formatida ishlaydi.
+# Agar OPENROUTER_API_KEY mavjud bo'lsa — OpenRouter, bo'lmasa — Groq.
+
+def ai_provider() -> tuple[str, str, dict]:
+    """Returns (base_url, api_key, extra_headers) — OpenRouter > Groq."""
+    or_key = getattr(settings, "OPENROUTER_API_KEY", "")
+    if or_key:
+        return (
+            "https://openrouter.ai/api/v1",
+            or_key,
+            {
+                "HTTP-Referer": getattr(settings, "OPENROUTER_REFERER", "https://togai.uz"),
+                "X-Title": getattr(settings, "OPENROUTER_TITLE", "Tog'AI"),
+            },
+        )
+    return ("https://api.groq.com/openai/v1", getattr(settings, "GROQ_API_KEY", ""), {})
+
+
+def ai_has_key() -> bool:
+    return bool(getattr(settings, "OPENROUTER_API_KEY", "") or getattr(settings, "GROQ_API_KEY", ""))
+
+
+# Model ro'yxati — provider-dependent. OpenRouter'da provider/model formatda.
+def vision_models() -> list[str]:
+    if getattr(settings, "OPENROUTER_API_KEY", ""):
+        return [
+            "meta-llama/llama-4-scout:free",
+            "meta-llama/llama-3.2-90b-vision-instruct",
+            "meta-llama/llama-3.2-11b-vision-instruct",
+            "anthropic/claude-3.5-haiku",
+        ]
+    # Groq fallback
+    return [
+        "meta-llama/llama-4-scout-17b-16e-instruct",
+        "meta-llama/llama-4-maverick-17b-128e-instruct",
+        "llama-3.2-90b-vision-preview",
+        "llama-3.2-11b-vision-preview",
+    ]
+
+
+def chat_model() -> str:
+    if getattr(settings, "OPENROUTER_API_KEY", ""):
+        return "meta-llama/llama-3.3-70b-instruct"
+    return "llama-3.3-70b-versatile"
+
+
 def _compress_image(image_bytes: bytes, max_dim: int = 1024, quality: int = 82) -> bytes:
     """Rasmni Groq uchun kichraytirish: JPEG, max 1024×1024, ~150-300KB."""
     img = Image.open(io.BytesIO(image_bytes))
@@ -147,12 +196,12 @@ Faqat JSON, boshqa matn yo'q."""
 
 
 def identify_species_from_image(image_bytes: bytes, mime: str = "image/jpeg") -> dict:
-    """Groq Vision orqali rasmdan turni aniqlash.
+    """Vision orqali rasmdan turni aniqlash.
 
-    Bir nechta model'ni navbatma-navbat sinaydi.
+    OpenRouter (asosiy) yoki Groq (fallback) — bir nechta model'ni navbatma-navbat sinaydi.
     """
-    if not settings.GROQ_API_KEY:
-        return {"found": False, "reason": "GROQ_API_KEY sozlanmagan"}
+    if not ai_has_key():
+        return {"found": False, "reason": "AI kalit sozlanmagan (OPENROUTER_API_KEY/GROQ_API_KEY)"}
 
     # 1. Rasmni siqish — Groq limit: 4MB base64 (~3MB faylga to'g'ri keladi)
     try:
@@ -165,22 +214,19 @@ def identify_species_from_image(image_bytes: bytes, mime: str = "image/jpeg") ->
     size_kb = len(b64) / 1024
     log.info("Groq vision: uploading %.0f KB base64", size_kb)
 
-    # 2. Navbatda 3 model — biri ishlamasa, keyingisiga
-    MODELS = [
-        "meta-llama/llama-4-scout-17b-16e-instruct",
-        "meta-llama/llama-4-maverick-17b-128e-instruct",
-        "llama-3.2-90b-vision-preview",
-        "llama-3.2-11b-vision-preview",
-    ]
+    # 2. Provider'ga qarab modellar — OpenRouter yoki Groq
+    base_url, api_key, extra_headers = ai_provider()
+    MODELS = vision_models()
 
     last_err = None
     for model in MODELS:
         try:
             r = requests.post(
-                "https://api.groq.com/openai/v1/chat/completions",
+                f"{base_url}/chat/completions",
                 headers={
-                    "Authorization": f"Bearer {settings.GROQ_API_KEY}",
+                    "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json",
+                    **extra_headers,
                 },
                 json={
                     "model": model,
@@ -243,18 +289,25 @@ def identify_species_from_image(image_bytes: bytes, mime: str = "image/jpeg") ->
 def groq_chat(
     prompt: str,
     system: str = "",
-    model: str = "llama-3.3-70b-versatile",
+    model: str = "",
     *,
     max_tokens: int = 600,
     temperature: float = 0.4,
 ) -> str:
-    """Groq tez LLM — AI chat uchun."""
-    if not settings.GROQ_API_KEY:
+    """LLM chat — OpenRouter (asosiy) yoki Groq (fallback). Nom legacy."""
+    if not ai_has_key():
         return "AI hozir mavjud emas. Kelajakda javob beraman."
+    base_url, api_key, extra_headers = ai_provider()
+    if not model:
+        model = chat_model()
     try:
         r = requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={"Authorization": f"Bearer {settings.GROQ_API_KEY}"},
+            f"{base_url}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                **extra_headers,
+            },
             json={
                 "model": model,
                 "messages": [
@@ -269,7 +322,7 @@ def groq_chat(
         r.raise_for_status()
         return r.json()["choices"][0]["message"]["content"].strip()
     except requests.RequestException as e:
-        log.exception("Groq chat error: %s", e)
+        log.exception("AI chat error: %s", e)
         return "Hozir javob bera olmadim. Qayta urinib ko'ring."
 
 
@@ -399,7 +452,7 @@ def send_otp_via_telegram(telegram_id: int, code: str) -> bool:
     text = (
         f"🔐 <b>Tog'AI tasdiqlash kodi</b>\n\n"
         f"<code>{code}</code>\n\n"
-        f"Kod 10 daqiqa amal qiladi. Kodni hech kimga bermang."
+        f"Kod 2 daqiqa amal qiladi. Kodni hech kimga bermang."
     )
     try:
         r = requests.post(

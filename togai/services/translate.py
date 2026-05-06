@@ -276,10 +276,13 @@ def ensure_uz(text: str, *, kind: str = "auto") -> str:
 
 def _ai_translate_block(text: str) -> str:
     """Groq LLM bilan paragraf tarjima."""
-    if not getattr(settings, "GROQ_API_KEY", None):
+    from togai.integrations import ai_has_key, ai_provider, chat_model
+    if not ai_has_key():
         return text
 
     import requests
+    base_url, api_key, extra_headers = ai_provider()
+    _model = chat_model()
     sys_prompt = (
         "Siz biologiya/tabiat sohasidagi tarjimon. "
         "Sizga ingliz yoki rus tilidagi matn keladi — uni TABIIY o'zbek tiliga tarjima qiling. "
@@ -287,10 +290,14 @@ def _ai_translate_block(text: str) -> str:
         "Faqat tarjima matnini qaytaring, hech qanday izoh yoki sarlavha yo'q."
     )
     r = requests.post(
-        "https://api.groq.com/openai/v1/chat/completions",
-        headers={"Authorization": f"Bearer {settings.GROQ_API_KEY}"},
+        f"{base_url}/chat/completions",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            **extra_headers,
+        },
         json={
-            "model": "llama-3.3-70b-versatile",
+            "model": _model,
             "messages": [
                 {"role": "system", "content": sys_prompt},
                 {"role": "user", "content": text[:3000]},
@@ -305,9 +312,13 @@ def _ai_translate_block(text: str) -> str:
 
 
 def _ai_translate_single(name: str, latin: str = "") -> str:
-    """Groq LLM bilan bitta nomni tarjima qil."""
-    if not getattr(settings, "GROQ_API_KEY", None):
+    """OpenRouter/Groq bilan bitta nomni tarjima qil."""
+    from togai.integrations import ai_has_key, ai_provider, chat_model
+    if not ai_has_key():
         return name
+
+    base_url, api_key, extra_headers = ai_provider()
+    _model = chat_model()
 
     import requests
     sys_prompt = (
@@ -319,10 +330,14 @@ def _ai_translate_single(name: str, latin: str = "") -> str:
     user_prompt = f"Tarjima: {name}{hint}"
 
     r = requests.post(
-        "https://api.groq.com/openai/v1/chat/completions",
-        headers={"Authorization": f"Bearer {settings.GROQ_API_KEY}"},
+        f"{base_url}/chat/completions",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            **extra_headers,
+        },
         json={
-            "model": "llama-3.3-70b-versatile",
+            "model": _model,
             "messages": [
                 {"role": "system", "content": sys_prompt},
                 {"role": "user", "content": user_prompt},
@@ -340,11 +355,15 @@ def _ai_translate_single(name: str, latin: str = "") -> str:
 
 
 def _ai_translate_batch(items: list[tuple[str, str]]) -> dict[str, str]:
-    """Groq LLM bilan ko'p nomlarni bitta call ichida."""
-    if not getattr(settings, "GROQ_API_KEY", None):
+    """OpenRouter/Groq bilan ko'p nomlarni bitta call ichida."""
+    from togai.integrations import ai_has_key, ai_provider, chat_model
+    if not ai_has_key():
         return {}
     if not items:
         return {}
+
+    base_url, api_key, extra_headers = ai_provider()
+    _model = chat_model()
 
     import requests
 
@@ -362,10 +381,14 @@ def _ai_translate_batch(items: list[tuple[str, str]]) -> dict[str, str]:
     )
 
     r = requests.post(
-        "https://api.groq.com/openai/v1/chat/completions",
-        headers={"Authorization": f"Bearer {settings.GROQ_API_KEY}"},
+        f"{base_url}/chat/completions",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            **extra_headers,
+        },
         json={
-            "model": "llama-3.3-70b-versatile",
+            "model": _model,
             "messages": [
                 {"role": "system", "content": sys_prompt},
                 {"role": "user", "content": json.dumps({"items": body_items}, ensure_ascii=False)},
@@ -414,7 +437,8 @@ def uz_to_scientific(query: str) -> dict | None:
     q = (query or "").strip()
     if not q or len(q) > 60:
         return None
-    if not getattr(settings, "GROQ_API_KEY", None):
+    from togai.integrations import ai_has_key, ai_provider, chat_model
+    if not ai_has_key():
         return None
 
     key = f"{UZ_TO_SCI_NS}:{hashlib.sha1(q.lower().encode()).hexdigest()[:14]}"
@@ -423,6 +447,8 @@ def uz_to_scientific(query: str) -> dict | None:
         return cached or None  # bo'sh dict → None
 
     import requests
+    base_url, api_key, extra_headers = ai_provider()
+    _model = chat_model()
 
     sys_prompt = (
         "Siz biolog-eksperti. Foydalanuvchi o'zbek tilida tabiat ob'ektini qidiryapti "
@@ -440,10 +466,14 @@ def uz_to_scientific(query: str) -> dict | None:
 
     try:
         r = requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={"Authorization": f"Bearer {settings.GROQ_API_KEY}"},
+            f"{base_url}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                **extra_headers,
+            },
             json={
-                "model": "llama-3.3-70b-versatile",
+                "model": _model,
                 "messages": [
                     {"role": "system", "content": sys_prompt},
                     {"role": "user", "content": q},

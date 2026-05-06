@@ -1,6 +1,31 @@
+from urllib.parse import quote
+
 from rest_framework import serializers
 
 from .models import Species
+
+
+def _fast_url(raw: str, w: int = 400) -> str:
+    """Wrap external image URL through images.weserv.nl proxy.
+
+    The proxy caches + resizes on Cloudflare's network → 3-5x faster
+    than direct iNaturalist/S3 from non-US clients. Free, no key.
+    """
+    if not raw:
+        return raw
+    if "weserv.nl" in raw:
+        return raw
+    # weserv expects URL without scheme
+    if raw.startswith("https://"):
+        cleaned = raw[len("https://") :]
+    elif raw.startswith("http://"):
+        cleaned = raw[len("http://") :]
+    else:
+        cleaned = raw
+    return (
+        f"https://images.weserv.nl/?url={quote(cleaned, safe='')}"
+        f"&w={w}&q=70&output=webp&af"
+    )
 
 
 class SpeciesListSerializer(serializers.ModelSerializer):
@@ -27,7 +52,9 @@ class SpeciesListSerializer(serializers.ModelSerializer):
         if obj.image:
             url = obj.image.url
             return request.build_absolute_uri(url) if request else url
-        return obj.image_url or None
+        if obj.image_url:
+            return _fast_url(obj.image_url, w=400)
+        return None
 
 
 class SpeciesDetailSerializer(SpeciesListSerializer):

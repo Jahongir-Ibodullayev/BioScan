@@ -7,10 +7,12 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 
+from bot.webhook import telegram_webhook
 from togai.health import health
 
 api_patterns = [
     path("health/", health, name="health"),
+    path("bot/webhook/", telegram_webhook, name="bot-webhook"),
     path("auth/", include("accounts.urls")),
     path("species/", include("catalog.urls")),
     path("observations/", include("observations.urls")),

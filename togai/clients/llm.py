@@ -1,4 +1,4 @@
-"""LLM chat client — Groq-hosted text models.
+"""LLM chat client — OpenRouter (asosiy) yoki Groq (fallback).
 
 Keeps prompts out of business logic — each caller provides its own system + user.
 """
@@ -6,29 +6,29 @@ from __future__ import annotations
 
 import logging
 
-from django.conf import settings
-
 from togai.core.exceptions import ExternalServiceError
+from togai.integrations import ai_has_key, ai_provider, chat_model
 
 from ._http import post_json
 
 log = logging.getLogger(__name__)
-
-ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
-DEFAULT_MODEL = "llama-3.3-70b-versatile"
 
 
 def chat(
     prompt: str,
     *,
     system: str = "",
-    model: str = DEFAULT_MODEL,
+    model: str = "",
     max_tokens: int = 600,
     temperature: float = 0.4,
 ) -> str:
     """Run an LLM chat completion. Returns the assistant text."""
-    if not settings.GROQ_API_KEY:
+    if not ai_has_key():
         return "AI hozir mavjud emas."
+
+    base_url, api_key, extra_headers = ai_provider()
+    if not model:
+        model = chat_model()
 
     payload = {
         "model": model,
@@ -41,9 +41,13 @@ def chat(
     }
     try:
         data = post_json(
-            ENDPOINT,
+            f"{base_url}/chat/completions",
             payload,
-            headers={"Authorization": f"Bearer {settings.GROQ_API_KEY}"},
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                **extra_headers,
+            },
             timeout=30,
         )
         return data["choices"][0]["message"]["content"].strip()

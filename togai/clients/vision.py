@@ -10,7 +10,6 @@ import io
 import json
 import logging
 
-from django.conf import settings
 from PIL import Image
 
 from togai.core.exceptions import (
@@ -19,19 +18,11 @@ from togai.core.exceptions import (
     UpstreamUnavailableError,
     VisionModelError,
 )
+from togai.integrations import ai_has_key, ai_provider, vision_models
 
 from ._http import post_json
 
 log = logging.getLogger(__name__)
-
-ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
-
-MODELS = [
-    "meta-llama/llama-4-scout-17b-16e-instruct",
-    "meta-llama/llama-4-maverick-17b-128e-instruct",
-    "llama-3.2-90b-vision-preview",
-    "llama-3.2-11b-vision-preview",
-]
 
 PROMPT = """Siz Markaziy Osiyo flora/faunasi bo'yicha ekspert biologsiz.
 
@@ -102,6 +93,7 @@ def _compress(image_bytes: bytes, max_dim: int = 1024, quality: int = 82) -> byt
 
 
 def _call_one(model: str, b64: str, mime: str) -> dict:
+    base_url, api_key, extra_headers = ai_provider()
     payload = {
         "model": model,
         "messages": [{
@@ -116,9 +108,13 @@ def _call_one(model: str, b64: str, mime: str) -> dict:
         "response_format": {"type": "json_object"},
     }
     data = post_json(
-        ENDPOINT,
+        f"{base_url}/chat/completions",
         payload,
-        headers={"Authorization": f"Bearer {settings.GROQ_API_KEY}"},
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            **extra_headers,
+        },
         timeout=45,
     )
     raw = data["choices"][0]["message"]["content"]
@@ -133,8 +129,8 @@ def identify(image_bytes: bytes, *, mime: str = "image/jpeg") -> tuple[dict, str
 
     Raises VisionModelError if all models fail.
     """
-    if not settings.GROQ_API_KEY:
-        raise VisionModelError("GROQ_API_KEY not configured")
+    if not ai_has_key():
+        raise VisionModelError("AI key not configured (OPENROUTER_API_KEY/GROQ_API_KEY)")
 
     compressed = _compress(image_bytes)
     b64 = base64.b64encode(compressed).decode()
@@ -142,7 +138,7 @@ def identify(image_bytes: bytes, *, mime: str = "image/jpeg") -> tuple[dict, str
     log.info("vision.identify: %.0f KB base64", size_kb)
 
     last_err: Exception | None = None
-    for model in MODELS:
+    for model in vision_models():
         try:
             result = _call_one(model, b64, mime)
         except (UpstreamUnavailableError, UpstreamBadResponseError) as e:

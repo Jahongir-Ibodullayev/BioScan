@@ -270,8 +270,12 @@ ANTHROPIC_API_KEY = config("ANTHROPIC_API_KEY", default="")
 # IUCN Red List API
 IUCN_API_TOKEN = config("IUCN_API_TOKEN", default="")
 
-# Groq — tez LLM + Vision (asosiy AI provayderimiz)
+# Groq (legacy) va OpenRouter (asosiy) — AI provayder.
+# OpenRouter Groq bilan to'la mos (OpenAI format) — kalit bo'lsa avval shu ishlatiladi.
 GROQ_API_KEY = config("GROQ_API_KEY", default="")
+OPENROUTER_API_KEY = config("OPENROUTER_API_KEY", default="")
+OPENROUTER_REFERER = config("OPENROUTER_REFERER", default="https://togai.uz")
+OPENROUTER_TITLE = config("OPENROUTER_TITLE", default="Tog'AI")
 
 # Telegram bot — asosiy bot (skaner, chat, qidiruv)
 TELEGRAM_BOT_TOKEN = config("TELEGRAM_BOT_TOKEN", default="")

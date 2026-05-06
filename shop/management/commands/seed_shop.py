@@ -41,8 +41,9 @@ CATEGORIES = [
 # Stable Unsplash photo IDs that match each outdoor product category.
 # These specific photo IDs have been picked manually so each product
 # gets a relevant, real-looking image.
-def _u(photo_id: str, w: int = 800) -> str:
-    return f"https://images.unsplash.com/{photo_id}?auto=format&fit=crop&w={w}&q=80"
+def _u(photo_id: str, w: int = 400) -> str:
+    # Smaller width + lower quality = much faster on slow networks.
+    return f"https://images.unsplash.com/{photo_id}?auto=format&fit=crop&w={w}&q=55"
 
 
 def _uzum(query: str) -> str:
