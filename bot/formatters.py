@@ -50,11 +50,30 @@ def species_caption(s: Species, confidence: float = 0.98) -> str:
 
 
 def tab_content(s: Species, tab: str) -> str:
+    # First aid faqat haqiqiy xavfli turlarda 103 ko'rsatadi
+    # (zaharli o'simlik, ilon, chayon va h.k. — bot/AI 'first_aid' to'ldirishi kerak)
+    DANGEROUS_KEYWORDS = ("ilon", "snake", "vipera", "naja", "echis", "chayon", "scorpion",
+                          "zaharli", "toxic", "poison", "yirtqich", "predator",
+                          "alkaloid", "saponin")
+    is_dangerous = (
+        bool(s.first_aid)
+        or s.category in ("ilon", "reptile", "insect", "hasharot")
+        or any(kw in (s.warnings or "").lower() for kw in DANGEROUS_KEYWORDS)
+        or any(kw in (s.name or "").lower() for kw in DANGEROUS_KEYWORDS)
+    )
+    if is_dangerous:
+        firstaid_text = s.first_aid or "Birinchi yordam zarurati bo'lsa — 103 ga qo'ng'iroq qiling."
+    else:
+        firstaid_text = (
+            f"<b>{s.name}</b> xavfsiz tur. Birinchi yordam talab qilinmaydi.\n\n"
+            "Lekin agar allergiya yoki noqulay reaksiya sezsangiz — shifokor bilan maslahatlashing."
+        )
+
     mapping = {
         "general": ("📖 Umumiy ma'lumot", s.description or s.summary or "Ma'lumot yo'q."),
         "uses": ("✨ Foydasi", s.uses or "Bu tur uchun foyda ma'lumotlari hozircha bazaga qo'shilmagan."),
-        "warnings": ("⚠️ Xavfi va ehtiyot choralari", s.warnings or "Ma'lum xavf aniqlanmagan."),
-        "firstaid": ("🚑 Birinchi yordam", s.first_aid or "Birinchi yordam zarurati bo'lsa — 103 ga qo'ng'iroq qiling."),
+        "warnings": ("⚠️ Xavfi va ehtiyot choralari", s.warnings or "Ma'lum xavf aniqlanmagan. Tur xavfsiz hisoblanadi."),
+        "firstaid": ("🚑 Birinchi yordam", firstaid_text),
     }
     title, body = mapping.get(tab, ("—", "Topilmadi"))
     return f"<b>{s.name}</b> — <i>{s.latin}</i>\n\n<b>{title}</b>\n\n{body}"

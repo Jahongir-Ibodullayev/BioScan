@@ -67,6 +67,31 @@ class VerifyOTPView(APIView):
         )
 
 
+class QuickAuthView(APIView):
+    """POST /api/auth/quick/  {phone, full_name?}
+    SMS kod talab qilmaydi — telefon raqami bilan to'g'ridan-to'g'ri JWT beradi.
+    SMS gateway integratsiyasi kelgunicha hozirgi vaqtinchalik holat.
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        ser = RequestOTPSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        phone = ser.validated_data["phone"]
+        full_name = (request.data.get("full_name") or "").strip()
+
+        user, created = User.objects.get_or_create(phone=phone)
+        if full_name and (created or not user.full_name):
+            user.full_name = full_name
+            user.save(update_fields=["full_name"])
+
+        return Response(
+            {"user": UserSerializer(user).data, **tokens_for(user), "new": created},
+            status=status.HTTP_200_OK,
+        )
+
+
 class MeView(generics.RetrieveUpdateAPIView):
     """GET / PATCH /api/auth/me  — joriy foydalanuvchi profili."""
 

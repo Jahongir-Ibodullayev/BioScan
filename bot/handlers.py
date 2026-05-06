@@ -348,10 +348,31 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # Save to collection
+    # Save to collection — real DB write via SavedSpecies
     if data.startswith("save:"):
         slug = data.split(":", 1)[1]
-        await q.answer("Kolleksiyangizga qo'shildi! 💾", show_alert=True)
+        species = await get_species(slug)
+        if not species:
+            await q.answer("Tur topilmadi", show_alert=True)
+            return
+        try:
+            from asgiref.sync import sync_to_async
+            from saved_items.models import SavedSpecies
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            tg_id = q.from_user.id
+            tg_phone = f"tg:{tg_id}"  # bot orqali kelgan user uchun virtual phone
+            user, _ = await sync_to_async(User.objects.get_or_create)(
+                phone=tg_phone,
+                defaults={"full_name": q.from_user.full_name or "Telegram"},
+            )
+            _saved, created = await sync_to_async(SavedSpecies.objects.get_or_create)(
+                user=user, species=species,
+            )
+            msg = "Kolleksiyangizga qo'shildi! 💾" if created else "Allaqachon kolleksiyangizda 💾"
+            await q.answer(msg, show_alert=True)
+        except Exception as e:
+            await q.answer(f"Saqlashda xato: {str(e)[:60]}", show_alert=True)
         return
 
     # Back / show original card
