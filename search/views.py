@@ -166,17 +166,21 @@ def taxa_search(request):
     # ===== DB-first search =====
     # Foydalanuvchi skan qilgan turlar lokal DB'da. Avval shu yerdan qidiramiz.
     # Topsa darhol qaytaramiz — iNat'ga so'rov yubormaymiz (tezroq + arzonroq).
+    # 4+ harfli so'rovlardagina icontains, kalta so'rovlarda exact bo'lishi shart
+    # (chunki "ot" — apricot, Otis, Bota, etc bilan urinmasin)
     try:
         from catalog.models import Species
         from django.db.models import Q
-        local = (
-            Species.objects.filter(
+        if len(q_original) < 4:
+            local = Species.objects.filter(
+                Q(name__iexact=q_original) | Q(latin__iexact=q_original) | Q(slug__iexact=q_original)
+            ).order_by("name")[:per_page]
+        else:
+            local = Species.objects.filter(
                 Q(name__icontains=q_original)
                 | Q(latin__icontains=q_original)
                 | Q(slug__icontains=q_original)
-            )
-            .order_by("name")[:per_page]
-        )
+            ).order_by("name")[:per_page]
         if local.exists():
             local_results = [
                 {
