@@ -1,8 +1,15 @@
 """Telegram bot handlers."""
 import logging
+import re
 import urllib.parse
 
-from telegram import Update, InputMediaPhoto
+from telegram import (
+    KeyboardButton,
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
+    Update,
+    InputMediaPhoto,
+)
 from telegram.constants import ChatAction, ParseMode
 from telegram.ext import ContextTypes
 
@@ -10,6 +17,16 @@ from . import formatters, keyboards
 from .service import get_species, pick_species_for_photo
 
 log = logging.getLogger(__name__)
+
+
+def _normalize_phone(raw: str) -> str:
+    """+998 (90) 123-45-67 → +998901234567"""
+    if not raw:
+        return ""
+    digits = re.sub(r"\D", "", raw)
+    if not digits.startswith("998") and len(digits) in (9, 12):
+        digits = "998" + digits[-9:]
+    return "+" + digits if digits else ""
 
 
 # ------------------------------------------------------------------
@@ -41,10 +58,105 @@ async def app_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def login_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Foydalanuvchini Tog'AI hisobiga ulash — telefon raqamini so'raydi.
+
+    Foydalanuvchi raqamni ulashdan keyin contact_handler ishga tushadi va
+    User'ning telegram_id'sini saqlab qoyadi. Keyin webapp/APK kirayotganda
+    OTP shu chatga keladi.
+    """
+    kb = ReplyKeyboardMarkup(
+        [[KeyboardButton("📱 Raqamni ulashish", request_contact=True)]],
+        resize_keyboard=True,
+        one_time_keyboard=True,
+    )
+    await update.message.reply_text(
+        "🔐 <b>Tog'AI hisobiga ulanish</b>\n\n"
+        "Pastdagi tugmani bosib, telefon raqamingizni ulashing. "
+        "Endi webapp yoki APK'ga kirayotganda, tasdiqlash kodi shu yerga keladi.\n\n"
+        "<i>Sizning raqamingiz faqat OTP yuborish uchun ishlatiladi.</i>",
+        parse_mode=ParseMode.HTML,
+        reply_markup=kb,
+    )
+
+
+async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Foydalanuvchi telefon raqamini ulashdi — User.telegram_id ni saqlaymiz."""
+    msg = update.message
+    contact = msg.contact
+    if not contact or not contact.phone_number:
+        await msg.reply_text("❌ Raqam olinmadi. /login ni qayta bosing.")
+        return
+
+    # Foydalanuvchi faqat o'z raqamini ulashishi mumkin
+    if contact.user_id and contact.user_id != msg.from_user.id:
+        await msg.reply_text(
+            "⚠️ Faqat o'z raqamingizni ulashing — boshqa odamning raqamini emas.",
+            reply_markup=ReplyKeyboardRemove(),
+        )
+        return
+
+    phone = _normalize_phone(contact.phone_number)
+    if not phone:
+        await msg.reply_text("❌ Raqam noto'g'ri formatda.")
+        return
+
+    tg_id = msg.from_user.id
+    tg_username = msg.from_user.username or ""
+
+    try:
+        from asgiref.sync import sync_to_async
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+
+        @sync_to_async
+        def link():
+            # Boshqa user telegram_id bilan band bo'lsa — bo'shatamiz
+            User.objects.filter(telegram_id=tg_id).exclude(phone=phone).update(
+                telegram_id=None, telegram_username="",
+            )
+            user, created = User.objects.get_or_create(
+                phone=phone,
+                defaults={
+                    "full_name": msg.from_user.full_name or "",
+                    "telegram_id": tg_id,
+                    "telegram_username": tg_username,
+                },
+            )
+            if not created:
+                changed = False
+                if user.telegram_id != tg_id:
+                    user.telegram_id = tg_id
+                    changed = True
+                if user.telegram_username != tg_username:
+                    user.telegram_username = tg_username
+                    changed = True
+                if changed:
+                    user.save(update_fields=["telegram_id", "telegram_username"])
+            return user, created
+
+        user, created = await link()
+        await msg.reply_text(
+            f"✅ <b>Raqam ulandi!</b>\n\n"
+            f"📱 {phone}\n"
+            f"{'Yangi hisob yaratildi.' if created else 'Mavjud hisobga ulandi.'}\n\n"
+            f"Endi webapp yoki APK'da shu raqam bilan kirsangiz, kod shu yerga keladi.",
+            parse_mode=ParseMode.HTML,
+            reply_markup=ReplyKeyboardRemove(),
+        )
+    except Exception as e:
+        log.exception("contact link failed: %s", e)
+        await msg.reply_text(
+            "❌ Ulashda xato. Qayta urinib ko'ring.",
+            reply_markup=ReplyKeyboardRemove(),
+        )
+
+
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "🆘 <b>Yordam</b>\n\n"
         "• Rasm yuboring — AI turni aniqlaydi\n"
+        "• /login — webapp/APK uchun raqam ulash\n"
         "• /app — web ilovani ochish\n"
         "• /start — menyu\n"
         "• /sos — favqulodda yordam\n"

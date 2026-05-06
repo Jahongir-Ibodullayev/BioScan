@@ -371,3 +371,44 @@ def ai_reply(prompt: str, context: str = "") -> str:
 
     # Fallback — canned
     return "Savolingiz uchun rahmat! Bu mavzuni hozir o'rganyapman. Batafsilroq javob uchun /app/chat'dan foydalaning."
+
+
+# ------------------------------------------------------------------
+# Telegram bot OTP (SMS o'rniga — bepul, bizniki)
+# ------------------------------------------------------------------
+def send_otp_via_telegram(telegram_id: int, code: str) -> bool:
+    """Foydalanuvchining Telegram chat'iga OTP kodini yuboradi.
+
+    Sinxron `requests` chaqiruv (bot API HTTP endpoint orqali).
+    True = muvaffaqiyatli.
+    """
+    token = getattr(settings, "TELEGRAM_BOT_TOKEN", None)
+    if not token:
+        log.warning("TELEGRAM_BOT_TOKEN yo'q — OTP yuborib bo'lmadi")
+        return False
+    if not telegram_id:
+        return False
+
+    text = (
+        f"🔐 <b>Tog'AI tasdiqlash kodi</b>\n\n"
+        f"<code>{code}</code>\n\n"
+        f"Kod 10 daqiqa amal qiladi. Kodni hech kimga bermang."
+    )
+    try:
+        r = requests.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={
+                "chat_id": telegram_id,
+                "text": text,
+                "parse_mode": "HTML",
+                "disable_web_page_preview": True,
+            },
+            timeout=10,
+        )
+        if r.status_code == 200 and r.json().get("ok"):
+            return True
+        log.warning("Telegram OTP send failed: %s %s", r.status_code, r.text[:200])
+        return False
+    except requests.RequestException as e:
+        log.exception("Telegram OTP send error: %s", e)
+        return False

@@ -273,6 +273,10 @@ IUCN_API_TOKEN = config("IUCN_API_TOKEN", default="")
 # Groq — tez LLM + Vision (asosiy AI provayderimiz)
 GROQ_API_KEY = config("GROQ_API_KEY", default="")
 
+# Telegram bot — OTP yuborish va botni ishga tushirish
+TELEGRAM_BOT_TOKEN = config("TELEGRAM_BOT_TOKEN", default="")
+TELEGRAM_BOT_USERNAME = config("TELEGRAM_BOT_USERNAME", default="ishlabek_bot")
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=6),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=30),

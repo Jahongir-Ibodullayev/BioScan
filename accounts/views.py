@@ -4,7 +4,7 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from togai.integrations import send_sms
+from togai.integrations import send_otp_via_telegram, send_sms
 
 from .models import OTPCode
 from .serializers import (
@@ -18,9 +18,10 @@ User = get_user_model()
 
 
 class RequestOTPView(APIView):
-    """POST /api/auth/otp/request  {phone}  →  issues OTP (returned in dev).
+    """POST /api/auth/otp/request  {phone}  →  issues OTP (APK uchun, SMS gateway).
 
-    Productionda SMS gateway (Eskiz, Play Mobile va h.k.) orqali yuborish kerak.
+    BU APK UCHUN — Eskiz/Play Mobile orqali SMS yuboradi. Webapp uchun
+    `TelegramOTPRequestView` (`/api/auth/tg-otp/request/`) ishlatiladi.
     """
 
     permission_classes = [permissions.AllowAny]
@@ -37,7 +38,57 @@ class RequestOTPView(APIView):
                 status=status.HTTP_502_BAD_GATEWAY,
             )
         data = {"ok": True, "phone": phone}
-        # DEV only — productionda kod response'ga chiqmaydi.
+        if settings.DEBUG:
+            data["dev_code"] = otp.code
+        return Response(data, status=status.HTTP_201_CREATED)
+
+
+class TelegramOTPRequestView(APIView):
+    """POST /api/auth/tg-otp/request/  {phone}  →  OTP via Telegram bot (webapp uchun).
+
+    APK'dagi SMS OTP'ga tegmaydi — bu **alohida** webapp endpoint.
+    Foydalanuvchi avval botga `/login` qilib telefon raqamini ulashi kerak.
+    Telegram_id topilmasa — frontend foydalanuvchini t.me/<bot> ga yo'naltiradi.
+    """
+
+    permission_classes = [permissions.AllowAny]
+    serializer_class = RequestOTPSerializer
+
+    def post(self, request):
+        ser = self.serializer_class(data=request.data)
+        ser.is_valid(raise_exception=True)
+        phone = ser.validated_data["phone"]
+
+        user = User.objects.filter(phone=phone).first()
+        bot_username = getattr(settings, "TELEGRAM_BOT_USERNAME", "").lstrip("@")
+
+        if not user or not user.telegram_id:
+            return Response(
+                {
+                    "detail": (
+                        "Telegram orqali kirish uchun avval botga ulaning. "
+                        "Botni oching va /login bosib telefon raqamingizni ulashing."
+                    ),
+                    "telegram_not_linked": True,
+                    "bot_username": bot_username or None,
+                    "bot_url": f"https://t.me/{bot_username}" if bot_username else None,
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        otp = OTPCode.issue(phone)
+        if not send_otp_via_telegram(user.telegram_id, otp.code):
+            return Response(
+                {"detail": "Kod yuborilmadi. Botni qayta oching va /login bosing."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        data = {
+            "ok": True,
+            "phone": phone,
+            "channel": "telegram",
+            "bot_username": bot_username or None,
+        }
         if settings.DEBUG:
             data["dev_code"] = otp.code
         return Response(data, status=status.HTTP_201_CREATED)

@@ -1,5 +1,6 @@
 import logging
 import secrets
+from datetime import datetime
 
 from django.utils.text import slugify
 from rest_framework import permissions, status, viewsets
@@ -27,6 +28,42 @@ class ObservationViewSet(viewsets.ModelViewSet):
         if getattr(self, "swagger_fake_view", False):
             return Observation.objects.none()
         return Observation.objects.filter(user=self.request.user).select_related("species")
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="yearbook",
+        permission_classes=[permissions.IsAuthenticated],
+    )
+    def yearbook(self, request):
+        """Yillik PDF kitob — joriy foydalanuvchining barcha skanlari.
+
+        GET ?year=2026 (default = current year)
+        Returns: application/pdf
+        """
+        from django.http import HttpResponse
+        from .yearbook import render_yearbook
+        try:
+            year = int(request.query_params.get("year") or datetime.now().year)
+        except ValueError:
+            year = datetime.now().year
+        from datetime import datetime as _dt
+        start = _dt(year, 1, 1)
+        end = _dt(year + 1, 1, 1)
+        obs = (
+            Observation.objects.filter(
+                user=request.user,
+                created_at__gte=start, created_at__lt=end,
+            )
+            .select_related("species")
+            .order_by("created_at")
+        )
+        pdf = render_yearbook(request.user, year, obs)
+        resp = HttpResponse(pdf, content_type="application/pdf")
+        resp["Content-Disposition"] = (
+            f'attachment; filename="togai-kundalik-{year}.pdf"'
+        )
+        return resp
 
     @action(
         detail=False,

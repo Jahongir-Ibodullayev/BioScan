@@ -1,289 +1,302 @@
-"""
-Tog'AI Outdoor Gear — chodir, arqon, sayohat anjomlari.
+"""Tog'AI Outdoor Gear — chodir, arqon, sayohat anjomlari.
 
-Faqat tabiatda yuradigan turistlar uchun: chodir, uxlash xaltasi, arqon,
-fonarlar, kompas, multi-tool, suv tozalovchi, birinchi yordam va h.k.
-
-Har mahsulotda Unsplash CC0 rasmi va Amazon/Aliexpress sotib olish havolasi.
+Har bir mahsulotning sotib olish havolasi Uzum Market'ga tushadi (qidiruv).
+Rasmlar — mavzu bo'yicha mos keluvchi Unsplash fotosuratlari.
+Run: python manage.py seed_shop
 """
 from __future__ import annotations
 
-import random
 from decimal import Decimal
+from urllib.parse import quote_plus
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from shop.models import Category, Product
+from shop.models import Category, Product, ProductImage, CartItem, Wishlist, Review
 
 User = get_user_model()
 
 
-# ============================================================
-# Faqat 4 ta outdoor kategoriya — ovqat/giyoh/asal yo'q
-# ============================================================
 CATEGORIES = [
-    {"name": "Chodir va uxlash", "slug": "tent",     "order": 1},
-    {"name": "Arqon va alpinizm","slug": "climbing", "order": 2},
-    {"name": "Sayohat anjomlari","slug": "gear",     "order": 3},
-    {"name": "Xavfsizlik",       "slug": "safety",   "order": 4},
+    {"name": "Chodirlar", "slug": "chodir", "order": 1,
+     "description": "Sayohat, tog' va kemping uchun chodirlar"},
+    {"name": "Arqon va karabin", "slug": "arqon-karabin", "order": 2,
+     "description": "Toqqa chiqish va xavfsizlik anjomlari"},
+    {"name": "Ryukzaklar", "slug": "ryukzak", "order": 3,
+     "description": "Trekking sumkalari va kunlik backpack"},
+    {"name": "Uxlash anjomlari", "slug": "sleeping", "order": 4,
+     "description": "Uxlash xaltasi, gilam, yostiq"},
+    {"name": "Kiyim va poyabzal", "slug": "kiyim-poyabzal", "order": 5,
+     "description": "Trekking botinkasi, suv o'tkazmas kurtka, fleece"},
+    {"name": "Navigatsiya", "slug": "navigatsiya", "order": 6,
+     "description": "Kompas, GPS, fonus"},
+    {"name": "Suv va idishlar", "slug": "suv-idish", "order": 7,
+     "description": "Termos, suv flaska, oshxona"},
+    {"name": "Birinchi yordam", "slug": "first-aid", "order": 8,
+     "description": "Yo'l shifoxonasi, multitul, ilon zaharidan"},
 ]
 
-SELLERS = [
-    {"phone": "+998900000001", "full_name": "Tog'AI Bozori",     "seller_name": "Tog'AI Bozori"},
-    {"phone": "+998900000002", "full_name": "Chimgan Trail",      "seller_name": "Chimgan Trail"},
-    {"phone": "+998900000003", "full_name": "Outdoor UZ",         "seller_name": "Outdoor UZ"},
+
+# Stable Unsplash photo IDs that match each outdoor product category.
+# These specific photo IDs have been picked manually so each product
+# gets a relevant, real-looking image.
+def _u(photo_id: str, w: int = 800) -> str:
+    return f"https://images.unsplash.com/{photo_id}?auto=format&fit=crop&w={w}&q=80"
+
+
+def _uzum(query: str) -> str:
+    return f"https://uzum.uz/uz/search?searchQuery={quote_plus(query)}"
+
+
+# (title, cat_slug, short, price, discount, photo_id, search_query, brand, featured)
+PRODUCTS = [
+    # ============= Chodirlar =============
+    ("MSR Hubba Hubba 2-kishilik chodir", "chodir",
+     "Yengil, suv o'tkazmas, 2 kishilik, 4 fasl chodir",
+     5_900_000, 5_200_000,
+     "photo-1504280390367-361c6d9f38f4",
+     "MSR Hubba Hubba chodir", "MSR", True),
+    ("Naturehike Cloud-Up 2", "chodir",
+     "20D Silikon, 1.7kg, 2 kishilik, mashhur tog' chodiri",
+     1_800_000, 1_550_000,
+     "photo-1478131143081-80f7f84ca84d",
+     "Naturehike Cloud-Up 2 chodir", "Naturehike", True),
+    ("Quechua MH100 3-kishilik chodir", "chodir",
+     "Decathlon, suv o'tkazmas, oilaviy, sayohatga ideal",
+     1_200_000, None,
+     "photo-1504851149312-7a075b496cc7",
+     "Quechua MH100 chodir 3", "Quechua", False),
+    ("Avtomatik chodir 4-kishilik", "chodir",
+     "Bir tortishda ochiladi, oila uchun, plyaj/tog'da",
+     950_000, 780_000,
+     "photo-1601900059030-b16e88c83feb",
+     "avtomatik chodir 4 kishilik", "—", False),
+
+    # ============= Arqon va karabin =============
+    ("Petzl Reverso belay/rappel", "arqon-karabin",
+     "Yagona/qo'shaloq arqon uchun, 59g, alyuminiy",
+     480_000, None,
+     "photo-1551632811-561732d1e306",
+     "Petzl Reverso belay", "Petzl", True),
+    ("Mammut 9.5mm dinamik arqon 60m", "arqon-karabin",
+     "UIAA sertifikatlangan, sport va alpinizm uchun",
+     2_100_000, 1_850_000,
+     "photo-1601933973783-43cf8a7d4c5f",
+     "Mammut dinamik arqon 60m", "Mammut", True),
+    ("Black Diamond karabin 5x to'plam", "arqon-karabin",
+     "Yengil alyuminiy, 24kN, 5 dona",
+     320_000, None,
+     "photo-1594736797933-d0401ba2fe65",
+     "Black Diamond karabin", "Black Diamond", False),
+    ("Statik arqon 50m 10.5mm", "arqon-karabin",
+     "22kN, qutqaruv va og'irlik tortish uchun",
+     1_350_000, None,
+     "photo-1517649763962-0c623066013b",
+     "statik arqon 10.5mm 50m", "XINDA", False),
+
+    # ============= Ryukzaklar =============
+    ("Osprey Atmos AG 65 ryukzak", "ryukzak",
+     "65L, Anti-Gravity tizimi, ko'p kunlik trekking premium",
+     3_600_000, 3_100_000,
+     "photo-1622260614153-03223fb72052",
+     "Osprey Atmos 65 ryukzak", "Osprey", True),
+    ("Deuter Aircontact 55+10 ryukzak", "ryukzak",
+     "65L, ergonomik orqa tizim, og'ir yuk uchun",
+     2_900_000, None,
+     "photo-1553062407-98eeb64c6a62",
+     "Deuter Aircontact ryukzak", "Deuter", True),
+    ("Quechua Forclaz 50L trekking", "ryukzak",
+     "Suv o'tkazmas qopqoq, oldi-orqa qulflanadigan",
+     780_000, 680_000,
+     "photo-1559563458-527698bf5295",
+     "Quechua Forclaz 50L ryukzak", "Quechua", False),
+    ("Daypack 30L kompakt ryukzak", "ryukzak",
+     "1 kunlik sayohat, suv shisha + lattop joyi",
+     390_000, 320_000,
+     "photo-1595953896988-65f9caa8ce06",
+     "30L ryukzak kunlik", "—", False),
+
+    # ============= Uxlash anjomlari =============
+    ("Uxlash xaltasi -10°C mummy", "sleeping",
+     "Mummy formatda, 1.6kg, qishki tog' uchun",
+     950_000, 820_000,
+     "photo-1496545672447-f699b503d270",
+     "uxlash xaltasi mummy -10", "Naturehike", True),
+    ("Therm-a-Rest NeoAir gilam", "sleeping",
+     "Inflatable, R-value 4.2, 410g, 5 daqiqada shishadi",
+     1_650_000, None,
+     "photo-1538970272646-f61fabb3a8a2",
+     "Therm-a-Rest NeoAir gilam", "Therm-a-Rest", True),
+    ("Sayohat yostigi puflanadigan", "sleeping",
+     "Kompakt 80g, ergonomik shakl, kemping uchun",
+     180_000, None,
+     "photo-1547833219-3f0a35b66f81",
+     "puflanadigan sayohat yostigi", "Naturehike", False),
+
+    # ============= Kiyim va poyabzal =============
+    ("Salomon X Ultra 4 GTX trekking botinka", "kiyim-poyabzal",
+     "Gore-Tex, suv o'tkazmas, qattiq toshli yo'lda barqaror",
+     2_400_000, 2_050_000,
+     "photo-1542838132-92c53300491e",
+     "Salomon X Ultra GTX botinka", "Salomon", True),
+    ("La Sportiva Trango Tower GTX", "kiyim-poyabzal",
+     "Yuqori toqqa chiqish uchun mustahkam botinka",
+     3_900_000, None,
+     "photo-1551107696-a4b0c5a0d9a2",
+     "La Sportiva Trango botinka", "La Sportiva", False),
+    ("Patagonia Torrentshell 3L kurtka", "kiyim-poyabzal",
+     "Suv o'tkazmas membrana, 3 qatlamli, yengil",
+     2_600_000, 2_300_000,
+     "photo-1551028719-00167b16eac5",
+     "yomgir kurtkasi membrana", "Patagonia", True),
+    ("Fleece kurtka 200gr", "kiyim-poyabzal",
+     "Issiq, nafas oluvchi, qatlam ostiga",
+     520_000, 440_000,
+     "photo-1591047139829-d91aecb6caea",
+     "fleece kurtka erkaklar", "Quechua", False),
+
+    # ============= Navigatsiya =============
+    ("Suunto MC-2 Pro kompass", "navigatsiya",
+     "Aniq, oyna bilan, harbiy uchun ham mos",
+     580_000, None,
+     "photo-1454942901704-3c44c11b2ad1",
+     "Suunto MC-2 kompass", "Suunto", True),
+    ("Garmin eTrex 22x GPS", "navigatsiya",
+     "GLONASS+GPS, 25 soat batareya, harita ichida",
+     3_200_000, 2_800_000,
+     "photo-1587293852726-70cdb56c2866",
+     "Garmin eTrex GPS", "Garmin", True),
+    ("Petzl Actik Core boshli fonus", "navigatsiya",
+     "450 lyumen, qayta zaryadli, 6 rejim",
+     680_000, 580_000,
+     "photo-1473445730015-841f29a9490b",
+     "Petzl Actik boshli fonus", "Petzl", False),
+    ("LED Lenser P7R Core 1400lm fonus", "navigatsiya",
+     "Qo'l fonusi, USB-C, 21 soat batareya",
+     780_000, None,
+     "photo-1581094488379-6f1a16b18f5d",
+     "LED Lenser fonus 1400 lyumen", "LED Lenser", False),
+
+    # ============= Suv va idishlar =============
+    ("Hydro Flask 1L vakuum termos", "suv-idish",
+     "24h sovuq / 12h issiq, po'lat",
+     520_000, 460_000,
+     "photo-1602143407151-7111542de6e8",
+     "Hydro Flask 1L termos", "Hydro Flask", True),
+    ("MSR Pocket Rocket 2 gaz pechka", "suv-idish",
+     "73g, 1L suvni 3.5 daqiqada qaynatadi",
+     720_000, None,
+     "photo-1598548669499-fcc4f5b0e67c",
+     "MSR Pocket Rocket gaz pechka", "MSR", True),
+    ("Sayohat termosi 750ml", "suv-idish",
+     "Po'lat, 24 soat issiq, sayohat uchun ideal",
+     180_000, 145_000,
+     "photo-1550501579-31a36b7e4076",
+     "termos 750 ml sayohat", "—", False),
+    ("LifeStraw shaxsiy suv filtri", "suv-idish",
+     "4000L gacha, 99.9999% bakteriya tutadi",
+     420_000, 360_000,
+     "photo-1530541930197-ff16ac917b0e",
+     "LifeStraw suv filtri", "LifeStraw", True),
+
+    # ============= Birinchi yordam =============
+    ("Adventure Medical UltraLight kit", "first-aid",
+     "Trekking uchun yengil first-aid to'plam",
+     420_000, None,
+     "photo-1603398938378-e54eab446dde",
+     "first aid kit ultralight", "Adventure Medical", False),
+    ("Sawyer Extractor — ilon zahari so'rgich", "first-aid",
+     "Ilon, ari, chayonga zudlik bilan yordam",
+     220_000, 175_000,
+     "photo-1586773860418-d37222d8fce3",
+     "ilon zahari sorgich Sawyer", "Sawyer", True),
+    ("Termal yopinchiq emergency", "first-aid",
+     "Mylar 213x132 sm, jarohat / sovuqda",
+     30_000, 22_000,
+     "photo-1576091160550-2173dba999ef",
+     "emergency mylar yopinchiq", "—", False),
+    ("Leatherman 14-in-1 multitul", "first-aid",
+     "Pichoq, qaychi, fayl, otvyortka — sayohatda zarur",
+     820_000, 720_000,
+     "photo-1581094288338-2314dddb7ece",
+     "Leatherman multitul", "Leatherman", True),
 ]
-
-# ============================================================
-# (title, price_so'm, image_url, external_url, seller)
-# Aliexpress va Amazon search havolalarini qo'llaymiz — affiliate-friendly.
-# ============================================================
-PRODUCTS = {
-    "tent": [
-        ("4 kishilik suv o'tkazmas chodir", 950_000,
-         "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4",
-         "https://www.aliexpress.com/wholesale-4-person-tent.html", "Aliexpress"),
-        ("2 kishilik yengil chodir (1.8kg)", 680_000,
-         "https://images.unsplash.com/photo-1487730116645-74489c95b41b",
-         "https://www.aliexpress.com/wholesale-2-person-ultralight-tent.html", "Aliexpress"),
-        ("Tog' uxlash xaltasi -10°C", 540_000,
-         "https://images.unsplash.com/photo-1496080174650-637e3f22fa03",
-         "https://www.aliexpress.com/wholesale-sleeping-bag--10-degree.html", "Aliexpress"),
-        ("Yengil sayohat gilamchasi (foam)", 180_000,
-         "https://images.unsplash.com/photo-1571687949921-1306bfb24b72",
-         "https://www.aliexpress.com/wholesale-sleeping-pad-foam.html", "Aliexpress"),
-        ("Hammock — daraxtga osiladigan", 220_000,
-         "https://images.unsplash.com/photo-1504851149312-7a075b496cc7",
-         "https://www.aliexpress.com/wholesale-camping-hammock.html", "Aliexpress"),
-        ("Tarpaulin (suvga qarshi yopgich)", 145_000,
-         "https://images.unsplash.com/photo-1505568571-7a3eef41c01b",
-         "https://www.aliexpress.com/wholesale-tarpaulin-camping.html", "Aliexpress"),
-        ("Yostiq — havoli sayohat uchun", 75_000,
-         "https://images.unsplash.com/photo-1519377345644-937ef9754740",
-         "https://www.aliexpress.com/wholesale-camping-pillow.html", "Aliexpress"),
-        ("Termo gilam (qishki uxlash)", 290_000,
-         "https://images.unsplash.com/photo-1500376820431-19b46db17b4f",
-         "https://www.aliexpress.com/wholesale-thermal-sleeping-pad.html", "Aliexpress"),
-    ],
-    "climbing": [
-        ("Tog' arqoni 50m (10mm dynamic)", 950_000,
-         "https://images.unsplash.com/photo-1551655510-555dc3be8633",
-         "https://www.aliexpress.com/wholesale-climbing-rope-50m.html", "Aliexpress"),
-        ("Yengil yordamchi arqon 30m (8mm)", 380_000,
-         "https://images.unsplash.com/photo-1604588519830-e1d7c2c61dca",
-         "https://www.aliexpress.com/wholesale-static-rope-30m.html", "Aliexpress"),
-        ("Karabin to'plami (5 dona, dynamic)", 240_000,
-         "https://images.unsplash.com/photo-1486528957538-b13e4c8e5b8a",
-         "https://www.aliexpress.com/wholesale-climbing-carabiner-set.html", "Aliexpress"),
-        ("Alpinizm kamari (harness)", 380_000,
-         "https://images.unsplash.com/photo-1606857521015-7f9fcf423740",
-         "https://www.aliexpress.com/wholesale-climbing-harness.html", "Aliexpress"),
-        ("Helmet — toshdan himoya", 290_000,
-         "https://images.unsplash.com/photo-1606857521015-7f9fcf423740",
-         "https://www.aliexpress.com/wholesale-climbing-helmet.html", "Aliexpress"),
-        ("Belay device + carabiner", 195_000,
-         "https://images.unsplash.com/photo-1551655510-555dc3be8633",
-         "https://www.aliexpress.com/wholesale-belay-device.html", "Aliexpress"),
-        ("Crampons (muzga qarshi)", 420_000,
-         "https://images.unsplash.com/photo-1551524559-8af4e6624178",
-         "https://www.aliexpress.com/wholesale-mountaineering-crampons.html", "Aliexpress"),
-        ("Ice axe (muz cho'qmori)", 480_000,
-         "https://images.unsplash.com/photo-1551524559-8af4e6624178",
-         "https://www.aliexpress.com/wholesale-ice-axe.html", "Aliexpress"),
-        ("Telescopic sayohat tayoq (juft)", 195_000,
-         "https://images.unsplash.com/photo-1551632811-561732d1e306",
-         "https://www.aliexpress.com/wholesale-trekking-poles.html", "Aliexpress"),
-        ("Climbing chalk + xalta", 95_000,
-         "https://images.unsplash.com/photo-1522163182402-834f871fd851",
-         "https://www.aliexpress.com/wholesale-climbing-chalk-bag.html", "Aliexpress"),
-    ],
-    "gear": [
-        ("Tog' ryukzaki 60L", 750_000,
-         "https://images.unsplash.com/photo-1553062407-98eeb64c6a62",
-         "https://www.aliexpress.com/wholesale-hiking-backpack-60l.html", "Aliexpress"),
-        ("Yengil sayohat ryukzaki 30L", 420_000,
-         "https://images.unsplash.com/photo-1622560480605-d83c853bc5c3",
-         "https://www.aliexpress.com/wholesale-daypack-30l.html", "Aliexpress"),
-        ("Suv qopi (hydration bladder 2L)", 115_000,
-         "https://images.unsplash.com/photo-1559827260-dc66d52bef19",
-         "https://www.aliexpress.com/wholesale-hydration-bladder.html", "Aliexpress"),
-        ("Termal flyaga 750ml", 130_000,
-         "https://images.unsplash.com/photo-1602143407151-7111542de6e8",
-         "https://www.aliexpress.com/wholesale-thermos-flask.html", "Aliexpress"),
-        ("Quyosh batareyali fonar", 220_000,
-         "https://images.unsplash.com/photo-1507525428034-b723cf961d3e",
-         "https://www.aliexpress.com/wholesale-solar-camping-lantern.html", "Aliexpress"),
-        ("Bosh fonar LED 600 lumen", 165_000,
-         "https://images.unsplash.com/photo-1551415923-a2297c7fda79",
-         "https://www.aliexpress.com/wholesale-led-headlamp.html", "Aliexpress"),
-        ("Mini gaz pechka (sayohat)", 225_000,
-         "https://images.unsplash.com/photo-1517483000871-1dbf64a6e1c6",
-         "https://www.aliexpress.com/wholesale-mini-camping-stove.html", "Aliexpress"),
-        ("Sayohat oshxona to'plami (qozon+tova)", 285_000,
-         "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136",
-         "https://www.aliexpress.com/wholesale-camping-cookware.html", "Aliexpress"),
-        ("Suv tozalovchi filtr", 320_000,
-         "https://images.unsplash.com/photo-1560089165-5b96a6ed4b1c",
-         "https://www.aliexpress.com/wholesale-water-filter-camping.html", "Aliexpress"),
-        ("Multi-asbob (16-in-1)", 380_000,
-         "https://images.unsplash.com/photo-1574870111867-089730e5a72b",
-         "https://www.aliexpress.com/wholesale-multi-tool.html", "Aliexpress"),
-        ("Sayohat pichoq (tactical, sheath bilan)", 240_000,
-         "https://images.unsplash.com/photo-1593504049359-74330189a345",
-         "https://www.aliexpress.com/wholesale-survival-knife.html", "Aliexpress"),
-        ("Kichik bolta (camping axe)", 295_000,
-         "https://images.unsplash.com/photo-1567113463300-102a7eb3cb26",
-         "https://www.aliexpress.com/wholesale-camping-hatchet.html", "Aliexpress"),
-        ("Tashqi power-bank 20000mAh", 290_000,
-         "https://images.unsplash.com/photo-1609592424823-58a5e0e6ca9e",
-         "https://www.aliexpress.com/wholesale-power-bank-20000mah.html", "Aliexpress"),
-        ("Quyosh paneli (yengil, taxlanadigan)", 480_000,
-         "https://images.unsplash.com/photo-1509391366360-2e959784a276",
-         "https://www.aliexpress.com/wholesale-foldable-solar-panel-camping.html", "Aliexpress"),
-        ("Termo qopqoqli stakan 350ml", 95_000,
-         "https://images.unsplash.com/photo-1485808191679-5f86510681a2",
-         "https://www.aliexpress.com/wholesale-thermos-mug.html", "Aliexpress"),
-        ("Yong'in chaqirish o'choqi (firestarter)", 78_000,
-         "https://images.unsplash.com/photo-1517398741578-6cf8b62b95cf",
-         "https://www.aliexpress.com/wholesale-fire-starter-camping.html", "Aliexpress"),
-        ("Kompas + xarita (mexanik)", 95_000,
-         "https://images.unsplash.com/photo-1518831959646-742c3a14ebf7",
-         "https://www.aliexpress.com/wholesale-hiking-compass.html", "Aliexpress"),
-        ("Binokl 10x42 (HD prizma)", 580_000,
-         "https://images.unsplash.com/photo-1486820599267-578da3ab4944",
-         "https://www.aliexpress.com/wholesale-binoculars-10x42.html", "Aliexpress"),
-        ("GPS qurilma (tracker)", 950_000,
-         "https://images.unsplash.com/photo-1584489451960-0d07d8b79d75",
-         "https://www.aliexpress.com/wholesale-gps-tracker-hiking.html", "Aliexpress"),
-        ("Qum/chang himoyali yopgich (rain cover)", 95_000,
-         "https://images.unsplash.com/photo-1496318447583-f524534e9ce1",
-         "https://www.aliexpress.com/wholesale-backpack-rain-cover.html", "Aliexpress"),
-    ],
-    "safety": [
-        ("Birinchi yordam to'plami (kompakt)", 145_000,
-         "https://images.unsplash.com/photo-1603398938378-e54eab446dde",
-         "https://www.aliexpress.com/wholesale-first-aid-kit-camping.html", "Aliexpress"),
-        ("Ilon zaharidan extractor pump", 85_000,
-         "https://images.unsplash.com/photo-1550831107-1553da8c8464",
-         "https://www.aliexpress.com/wholesale-snake-bite-kit.html", "Aliexpress"),
-        ("Acil signal hushtak + oyna", 35_000,
-         "https://images.unsplash.com/photo-1543013309-0d8e7a3a1b2a",
-         "https://www.aliexpress.com/wholesale-emergency-whistle-survival.html", "Aliexpress"),
-        ("Acil termal blanket (mylar 4-pack)", 55_000,
-         "https://images.unsplash.com/photo-1511497584788-876760111969",
-         "https://www.aliexpress.com/wholesale-emergency-mylar-blanket.html", "Aliexpress"),
-        ("Yer kana (insect) repellent", 65_000,
-         "https://images.unsplash.com/photo-1556228720-195a672e8a03",
-         "https://www.aliexpress.com/wholesale-insect-repellent-deet.html", "Aliexpress"),
-        ("Quyoshdan himoya krem SPF50+", 75_000,
-         "https://images.unsplash.com/photo-1556228852-80b6e5eeff06",
-         "https://www.aliexpress.com/wholesale-sunscreen-spf50-outdoor.html", "Aliexpress"),
-        ("Kichik o't o'chiruvchi (extinguisher)", 220_000,
-         "https://images.unsplash.com/photo-1572196410033-2bd00d3a6a87",
-         "https://www.aliexpress.com/wholesale-mini-fire-extinguisher-car.html", "Aliexpress"),
-        ("UV himoyali ko'zoynak", 195_000,
-         "https://images.unsplash.com/photo-1577803645773-f96470509666",
-         "https://www.aliexpress.com/wholesale-uv400-sunglasses-hiking.html", "Aliexpress"),
-        ("Acil radiotelefon (walkie-talkie 2x)", 380_000,
-         "https://images.unsplash.com/photo-1517336714731-489689fd1ca8",
-         "https://www.aliexpress.com/wholesale-walkie-talkie-pair.html", "Aliexpress"),
-        ("Quyoshdan himoya shapka (boyni qoplaydigan)", 95_000,
-         "https://images.unsplash.com/photo-1576188973526-aa7e0530edf9",
-         "https://www.aliexpress.com/wholesale-sun-hat-hiking-neck.html", "Aliexpress"),
-    ],
-}
-
-DESCRIPTIONS = {
-    "tent":     "Sifatli material, suv o'tkazmas, tog' iqlimiga moslashtirilgan. CE sertifikatli.",
-    "climbing": "Professional alpinizm va arqon ishi uchun. UIAA standartiga muvofiq.",
-    "gear":     "Yengil va chidamli — uzoq sayohat uchun ishonchli hamroh.",
-    "safety":   "Favqulodda holatlarda hayotni saqlash uchun zarur jihoz. Doimo yoningizda bo'lsin.",
-}
 
 
 class Command(BaseCommand):
-    help = "Tog'AI Outdoor — chodir/arqon/sayohat anjomlari (external linklar bilan)"
+    help = "Reset shop and seed outdoor / hiking products with Uzum links"
 
     def add_arguments(self, parser):
-        parser.add_argument("--reset", action="store_true",
-                            help="Mavjud demo mahsulotlarni o'chirib qaytadan to'ldirish")
+        parser.add_argument("--keep", action="store_true",
+                            help="Keep existing rows instead of wiping")
 
     @transaction.atomic
     def handle(self, *args, **opts):
-        # Reset — har doim demo seller mahsulotlarini tozalaymiz (kategoriya o'zgargan)
-        Product.objects.filter(seller__phone__startswith="+99890000").delete()
-        # Eski kategoriyalarni ham (food, herbs, honey, wood, clothing) — endi yo'q
-        Category.objects.filter(slug__in=["food", "herbs", "honey", "wood", "clothing"]).delete()
+        seller, _ = User.objects.get_or_create(
+            phone="+998900000000",
+            defaults={
+                "full_name": "Tog'AI Bozor",
+                "account_type": "seller",
+                "seller_name": "Tog'AI Outdoor",
+                "seller_verified": True,
+                "is_active": True,
+            },
+        )
 
-        # 1. Yangi kategoriyalar
+        if not opts["keep"]:
+            CartItem.objects.all().delete()
+            Wishlist.objects.all().delete()
+            Review.objects.all().delete()
+            ProductImage.objects.all().delete()
+            Product.objects.all().delete()
+            Category.objects.all().delete()
+            self.stdout.write(self.style.WARNING("✗ All shop data wiped"))
+
         cat_map = {}
-        for c in CATEGORIES:
-            obj, _ = Category.objects.update_or_create(slug=c["slug"], defaults=c)
-            cat_map[c["slug"]] = obj
-
-        # 2. Sotuvchilar
-        sellers = []
-        for s in SELLERS:
-            user, created = User.objects.get_or_create(
-                phone=s["phone"],
+        for cd in CATEGORIES:
+            cat, _ = Category.objects.update_or_create(
+                slug=cd["slug"],
                 defaults={
-                    "full_name": s["full_name"],
-                    "seller_name": s["seller_name"],
-                    "account_type": "seller",
-                    "seller_verified": True,
+                    "name": cd["name"],
+                    "order": cd["order"],
+                    "description": cd["description"],
+                    "is_active": True,
                 },
             )
-            if not created:
-                user.account_type = "seller"
-                user.seller_name = s["seller_name"]
-                user.seller_verified = True
-                user.save(update_fields=["account_type", "seller_name", "seller_verified"])
-            sellers.append(user)
+            cat_map[cd["slug"]] = cat
 
-        # 3. Mahsulotlar
-        total = 0
-        for slug, items in PRODUCTS.items():
-            cat = cat_map[slug]
-            base_desc = DESCRIPTIONS[slug]
-            for entry in items:
-                title, price, img, ext_url, ext_seller = entry
-                seller = random.choice(sellers)
-                full_image_url = img
-                if "unsplash.com" in img and "?" not in img:
-                    full_image_url = f"{img}?auto=format&fit=crop&w=600&q=80"
-                discount = None
-                if random.random() < 0.5:
-                    pct = random.choice([10, 15, 20, 25])
-                    discount = Decimal(int(price * (1 - pct / 100) / 1000) * 1000)
-                stock = random.randint(5, 80)
-                rating = round(random.uniform(4.0, 4.9), 1)
-                reviews = random.randint(8, 220)
-                is_featured = random.random() < 0.2
-
-                Product.objects.update_or_create(
-                    title=title,
-                    defaults={
-                        "seller": seller,
-                        "category": cat,
-                        "short_description": base_desc[:200],
-                        "description": f"{title}\n\n{base_desc} Tog'AI Bozori orqali sertifikatlangan.",
-                        "price": Decimal(price),
-                        "discount_price": discount,
-                        "stock_quantity": stock,
-                        "status": Product.STATUS_ACTIVE,
-                        "is_featured": is_featured,
-                        "rating": Decimal(str(rating)),
-                        "reviews_count": reviews,
-                        "ai_generated_description": False,
-                        "image_url": full_image_url,
-                        "external_url": ext_url,
-                        "external_seller": ext_seller,
-                    },
-                )
-                total += 1
+        new_count = 0
+        for (title, cat_slug, short, price, disc,
+             photo_id, search_query, brand, featured) in PRODUCTS:
+            cat = cat_map.get(cat_slug)
+            if not cat:
+                continue
+            _, was_created = Product.objects.update_or_create(
+                title=title,
+                defaults={
+                    "seller": seller,
+                    "category": cat,
+                    "short_description": short,
+                    "description": short,
+                    "price": Decimal(str(price)),
+                    "discount_price": Decimal(str(disc)) if disc else None,
+                    "currency": "UZS",
+                    "stock_quantity": 50,
+                    "status": "active",
+                    "is_featured": featured,
+                    "rating": Decimal("4.5"),
+                    "reviews_count": 12,
+                    "image_url": _u(photo_id),
+                    "external_url": _uzum(search_query),
+                    "external_seller": "Uzum Market",
+                    "brand": brand,
+                },
+            )
+            if was_created:
+                new_count += 1
 
         self.stdout.write(self.style.SUCCESS(
-            f"Outdoor magazin: {total} mahsulot, {len(cat_map)} kategoriya"
+            f"✓ {len(CATEGORIES)} kategoriya, {len(PRODUCTS)} mahsulot "
+            f"({new_count} yangi). Hammasi Uzum linkiga ulangan."
         ))

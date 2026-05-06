@@ -37,12 +37,16 @@ class Command(BaseCommand):
         app.add_handler(CommandHandler("start", handlers.start))
         app.add_handler(CommandHandler("help", handlers.help_cmd))
         app.add_handler(CommandHandler("app", handlers.app_cmd))
+        app.add_handler(CommandHandler("login", handlers.login_cmd))
         app.add_handler(CommandHandler("sos", handlers.emergency))
         app.add_handler(CommandHandler("xavf", handlers.emergency))
         app.add_handler(CommandHandler("emergency", handlers.emergency))
 
         # Photo
         app.add_handler(MessageHandler(filters.PHOTO, handlers.photo_handler))
+
+        # Contact share — telefon ulash uchun
+        app.add_handler(MessageHandler(filters.CONTACT, handlers.contact_handler))
 
         # Callback queries (inline buttons)
         app.add_handler(CallbackQueryHandler(handlers.callback_handler))
@@ -54,4 +58,4 @@ class Command(BaseCommand):
         app.add_error_handler(handlers.on_error)
 
         self.stdout.write(self.style.SUCCESS("🤖 Tog'AI bot ishga tushdi — polling..."))
-        app.run_polling(allowed_updates=["message", "callback_query"])
+        app.run_polling(allowed_updates=["message", "callback_query", "contact"])

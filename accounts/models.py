@@ -69,6 +69,15 @@ class User(AbstractUser):
     seller_bio = models.TextField("Sotuvchi haqida", blank=True)
     seller_verified = models.BooleanField("Sotuvchi tasdiqlangan", default=False)
 
+    # Telegram bot OTP — foydalanuvchi botga telefonini ulashganda to'ldiriladi
+    telegram_id = models.BigIntegerField(
+        "Telegram ID", null=True, blank=True, unique=True, db_index=True,
+        help_text="Telegram chat_id — bot orqali OTP yuborish uchun",
+    )
+    telegram_username = models.CharField(
+        "Telegram username", max_length=64, blank=True,
+    )
+
     USERNAME_FIELD = "phone"
     REQUIRED_FIELDS: list[str] = []
 
