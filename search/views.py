@@ -252,20 +252,21 @@ def taxa_search(request):
             "attribution": photo.get("attribution"),
         })
 
-    # AI tarjima: vocab'da yo'qlar uchun (Ruddy Turnstone, Common Hibiscus, h.k.)
+    # AI tarjima: faqat CACHE'dan o'qiymiz, yangi AI call qilmaymiz (tezlik!)
+    # Detail sahifasida (taxon_detail) AI tarjima qilinadi va cache to'ldiriladi.
     try:
-        from togai.services.translate import translate_batch, _looks_english
-        items = [(r["preferred_common_name"], r["name"]) for r in results
-                 if r.get("preferred_common_name")]
-        if items:
-            tr_map = translate_batch(items)
-            for r in results:
-                cn = r.get("preferred_common_name")
-                if cn and cn in tr_map:
-                    r["preferred_common_name"] = tr_map[cn]
-                # Final guard: agar hali ham _looks_english bo'lsa → genus
-                if r.get("preferred_common_name") and _looks_english(r["preferred_common_name"]):
-                    r["preferred_common_name"] = r["name"].split()[0].lower()
+        from togai.services.translate import _cache_key, _looks_english
+        from django.core.cache import cache as _cache
+        for r in results:
+            cn = r.get("preferred_common_name")
+            if not cn:
+                continue
+            cached = _cache.get(_cache_key(cn, r.get("name") or ""))
+            if cached and not _looks_english(cached):
+                r["preferred_common_name"] = cached
+            elif _looks_english(cn) and r.get("name"):
+                # Cache yo'q + ingliz nom → Latin genus'ga tushiramiz (instant)
+                r["preferred_common_name"] = r["name"].split()[0].lower()
     except Exception:
         pass
 
