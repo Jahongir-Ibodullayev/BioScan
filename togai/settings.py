@@ -273,9 +273,14 @@ IUCN_API_TOKEN = config("IUCN_API_TOKEN", default="")
 # Groq — tez LLM + Vision (asosiy AI provayderimiz)
 GROQ_API_KEY = config("GROQ_API_KEY", default="")
 
-# Telegram bot — OTP yuborish va botni ishga tushirish
+# Telegram bot — asosiy bot (skaner, chat, qidiruv)
 TELEGRAM_BOT_TOKEN = config("TELEGRAM_BOT_TOKEN", default="")
 TELEGRAM_BOT_USERNAME = config("TELEGRAM_BOT_USERNAME", default="ishlabek_bot")
+
+# Telegram OTP bot — alohida bot (faqat OTP kodlari uchun, webapp kirish)
+# Asosiy botdan ajratilgan: foydalanuvchi tasodifan asosiy bot bilan aralashtirmasin.
+TELEGRAM_OTP_BOT_TOKEN = config("TELEGRAM_OTP_BOT_TOKEN", default="")
+TELEGRAM_OTP_BOT_USERNAME = config("TELEGRAM_OTP_BOT_USERNAME", default="TogOTP_bot")
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=6),

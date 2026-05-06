@@ -60,7 +60,11 @@ class TelegramOTPRequestView(APIView):
         phone = ser.validated_data["phone"]
 
         user = User.objects.filter(phone=phone).first()
-        bot_username = getattr(settings, "TELEGRAM_BOT_USERNAME", "").lstrip("@")
+        # OTP uchun alohida bot — asosiy botdan ajratilgan
+        bot_username = (
+            getattr(settings, "TELEGRAM_OTP_BOT_USERNAME", "")
+            or getattr(settings, "TELEGRAM_BOT_USERNAME", "")
+        ).lstrip("@")
 
         if not user or not user.telegram_id:
             return Response(

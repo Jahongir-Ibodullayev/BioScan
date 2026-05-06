@@ -379,12 +379,19 @@ def ai_reply(prompt: str, context: str = "") -> str:
 def send_otp_via_telegram(telegram_id: int, code: str) -> bool:
     """Foydalanuvchining Telegram chat'iga OTP kodini yuboradi.
 
+    Alohida OTP bot (TELEGRAM_OTP_BOT_TOKEN) ishlatadi — asosiy bot
+    (skaner, chat) bilan aralashmasligi uchun. Agar OTP token yo'q bo'lsa,
+    asosiy botga fallback qiladi.
+
     Sinxron `requests` chaqiruv (bot API HTTP endpoint orqali).
     True = muvaffaqiyatli.
     """
-    token = getattr(settings, "TELEGRAM_BOT_TOKEN", None)
+    token = (
+        getattr(settings, "TELEGRAM_OTP_BOT_TOKEN", None)
+        or getattr(settings, "TELEGRAM_BOT_TOKEN", None)
+    )
     if not token:
-        log.warning("TELEGRAM_BOT_TOKEN yo'q — OTP yuborib bo'lmadi")
+        log.warning("TELEGRAM_OTP_BOT_TOKEN yo'q — OTP yuborib bo'lmadi")
         return False
     if not telegram_id:
         return False
