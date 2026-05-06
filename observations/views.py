@@ -131,7 +131,7 @@ class ObservationViewSet(viewsets.ModelViewSet):
             },
         )
 
-        # 3. Kuzatuv yaratish
+        # 3. Kuzatuv yaratish + Avtomatik kolleksiyaga qo'shish
         confidence = float(result.get("confidence") or 0.9)
         obs = None
         if request.user.is_authenticated:
@@ -143,6 +143,18 @@ class ObservationViewSet(viewsets.ModelViewSet):
                 latitude=req.validated_data.get("latitude"),
                 longitude=req.validated_data.get("longitude"),
             )
+            # Auto-save to user portfolio (kolleksiya). Birinchi marta yaratiladi,
+            # ikkinchi marta — get_or_create idempotent
+            try:
+                from saved_items.models import SavedSpecies
+                SavedSpecies.objects.get_or_create(
+                    user=request.user,
+                    species=species,
+                    defaults={"note": ""},
+                )
+            except Exception:
+                # Kolleksiya yaratish xato bo'lsa — scan asosiy ish, davom etamiz
+                logging.getLogger(__name__).exception("auto-save to portfolio failed")
 
         return Response({
             "identified": True,

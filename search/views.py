@@ -163,6 +163,48 @@ def taxa_search(request):
     per_page = min(int(request.GET.get("per_page", 20)), 50)
     locale = request.GET.get("locale", "uz")
 
+    # ===== DB-first search =====
+    # Foydalanuvchi skan qilgan turlar lokal DB'da. Avval shu yerdan qidiramiz.
+    # Topsa darhol qaytaramiz — iNat'ga so'rov yubormaymiz (tezroq + arzonroq).
+    try:
+        from catalog.models import Species
+        from django.db.models import Q
+        local = (
+            Species.objects.filter(
+                Q(name__icontains=q_original)
+                | Q(latin__icontains=q_original)
+                | Q(slug__icontains=q_original)
+            )
+            .order_by("name")[:per_page]
+        )
+        if local.exists():
+            local_results = [
+                {
+                    "id": s.id,
+                    "name": s.latin or s.name,
+                    "preferred_common_name": s.name,
+                    "rank": "species",
+                    "iconic_taxon_name": "",
+                    "observations_count": 0,
+                    "wikipedia_url": s.external_ref or None,
+                    "thumb": s.image_url or (s.image.url if s.image else None),
+                    "photo": s.image_url or (s.image.url if s.image else None),
+                    "attribution": "Tog'AI mahalliy bazasi",
+                    "_source": "local",
+                }
+                for s in local
+            ]
+            return Response({
+                "total": local.count(),
+                "translated": False,
+                "query_effective": q_original,
+                "source": "local-db",
+                "results": local_results,
+            })
+    except Exception:
+        # Local DB ishlamasa — iNat'ga o'tamiz
+        pass
+
     # 1) Uzbek → Latin translation
     resolved = resolve_uz(q_original)
     q_effective = resolved["latin"] if resolved else q_original
