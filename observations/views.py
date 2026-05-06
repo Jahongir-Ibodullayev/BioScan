@@ -1,5 +1,5 @@
 import logging
-import random
+import secrets
 
 from django.utils.text import slugify
 from rest_framework import permissions, status, viewsets
@@ -27,6 +27,43 @@ class ObservationViewSet(viewsets.ModelViewSet):
         if getattr(self, "swagger_fake_view", False):
             return Observation.objects.none()
         return Observation.objects.filter(user=self.request.user).select_related("species")
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="public",
+        permission_classes=[permissions.AllowAny],
+    )
+    def public(self, request):
+        """Global feed — barcha foydalanuvchilarning GPS-li skanlari.
+
+        GET ?bbox=minLat,minLng,maxLat,maxLng (optional) → bounding box filter
+        GET ?limit=200 (default 200, max 500)
+        """
+        from django.db.models import Q
+        qs = (
+            Observation.objects
+            .filter(latitude__isnull=False, longitude__isnull=False)
+            .select_related("species", "user")
+            .order_by("-created_at")
+        )
+        bbox = request.query_params.get("bbox")
+        if bbox:
+            try:
+                a, b, c, d = [float(x) for x in bbox.split(",")[:4]]
+                qs = qs.filter(
+                    latitude__gte=min(a, c), latitude__lte=max(a, c),
+                    longitude__gte=min(b, d), longitude__lte=max(b, d),
+                )
+            except (TypeError, ValueError):
+                pass
+        try:
+            limit = max(1, min(500, int(request.query_params.get("limit") or 200)))
+        except ValueError:
+            limit = 200
+        qs = qs[:limit]
+        ser = ObservationSerializer(qs, many=True, context={"request": request})
+        return Response({"count": len(ser.data), "results": ser.data})
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -87,7 +124,7 @@ class ObservationViewSet(viewsets.ModelViewSet):
             except Exception:
                 pass
 
-        slug = slugify(latin or name) or f"tur-{random.randint(1000, 9999)}"
+        slug = slugify(latin or name) or f"tur-{secrets.token_hex(4)}"
 
         # Universal UZ: hamma matn maydonlarini tekshir
         summary = (result.get("summary") or "")[:280]

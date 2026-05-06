@@ -390,3 +390,94 @@ def _ai_translate_batch(items: list[tuple[str, str]]) -> dict[str, str]:
         if n and uz:
             out[n] = uz
     return out
+
+
+# ============================================================
+# UZ → Latin/English (qidiruv uchun)
+# ============================================================
+UZ_TO_SCI_NS = "uz2sci:v1"
+UZ_TO_SCI_TTL = 60 * 60 * 24 * 30  # 30 kun
+
+
+def uz_to_scientific(query: str) -> dict | None:
+    """O'zbek qidiruv so'zini ilmiy (Latin) yoki inglizcha umumiy nomga o'giradi.
+
+    Cache + Groq LLM. Topa olmasa None qaytaradi.
+
+    Qaytariladi:
+      {
+        "scientific": "Camelus bactrianus",   # iNat'ga yuboriladigan asosiy
+        "english":    "bactrian camel",       # fallback
+        "category":   "animal" | "plant" | "bird" | "insect" | "reptile" | "fungi" | None,
+      }
+    """
+    q = (query or "").strip()
+    if not q or len(q) > 60:
+        return None
+    if not getattr(settings, "GROQ_API_KEY", None):
+        return None
+
+    key = f"{UZ_TO_SCI_NS}:{hashlib.sha1(q.lower().encode()).hexdigest()[:14]}"
+    cached = cache.get(key)
+    if cached is not None:
+        return cached or None  # bo'sh dict → None
+
+    import requests
+
+    sys_prompt = (
+        "Siz biolog-eksperti. Foydalanuvchi o'zbek tilida tabiat ob'ektini qidiryapti "
+        "(o'simlik, hayvon, qush, hasharot, baliq, gul, daraxt, qo'ziqorin va h.k.). "
+        "Vazifa: o'zbek nomdan iNaturalist/GBIF bazasi tushunadigan ILMIY (Latin) nom va "
+        "INGLIZCHA umumiy nomni qaytaring.\n"
+        "QOIDALAR:\n"
+        "1. Aniq tur bo'lsa: binomial Latin (masalan 'tuya' → 'Camelus')\n"
+        "2. Familiya/turkum bo'lsa: bitta so'z (Genus yoki Family)\n"
+        "3. Belgilamasa: bo'sh qoldiring\n"
+        "4. category: plant | animal | bird | insect | reptile | fungi | (yoki bo'sh)\n"
+        "FAQAT JSON, izoh yo'q: "
+        '{"scientific":"...","english":"...","category":"..."}'
+    )
+
+    try:
+        r = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {settings.GROQ_API_KEY}"},
+            json={
+                "model": "llama-3.3-70b-versatile",
+                "messages": [
+                    {"role": "system", "content": sys_prompt},
+                    {"role": "user", "content": q},
+                ],
+                "temperature": 0.0,
+                "max_tokens": 80,
+                "response_format": {"type": "json_object"},
+            },
+            timeout=12,
+        )
+        r.raise_for_status()
+        raw = r.json()["choices"][0]["message"]["content"]
+        data = json.loads(raw)
+    except Exception as e:
+        log.warning("uz_to_scientific failed for %r: %s", q, e)
+        cache.set(key, {}, NEG_TTL)
+        return None
+
+    scientific = (data.get("scientific") or "").strip()
+    english = (data.get("english") or "").strip()
+    category = (data.get("category") or "").strip().lower() or None
+
+    # Tozalash: faqat Latin ASCII bo'lishi kerak
+    if scientific and not re.match(r"^[A-Za-z][A-Za-z\s\-]+$", scientific):
+        scientific = ""
+
+    if not (scientific or english):
+        cache.set(key, {}, NEG_TTL)
+        return None
+
+    result = {
+        "scientific": scientific,
+        "english": english,
+        "category": category,
+    }
+    cache.set(key, result, UZ_TO_SCI_TTL)
+    return result

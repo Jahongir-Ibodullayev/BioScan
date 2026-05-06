@@ -9,6 +9,7 @@ Arxitektura:
 """
 from __future__ import annotations
 
+import secrets
 from decimal import Decimal
 
 from django.conf import settings
@@ -103,6 +104,16 @@ class Product(models.Model):
     # External image URL (Unsplash, CDN). ProductImage'siz tezroq ko'rsatish uchun
     image_url = models.URLField(blank=True, max_length=500, help_text="Tashqi rasm URL")
 
+    # Tashqi do'kondan sotib olish havolasi (Amazon, Aliexpress, Olcha va h.k.)
+    external_url = models.URLField(
+        blank=True, max_length=600,
+        help_text="Tashqi sotuv link (Amazon/Aliexpress/Olcha) — bossa shu yerga olib boradi",
+    )
+    external_seller = models.CharField(
+        max_length=80, blank=True,
+        help_text="Sotuvchi nomi: Amazon, Aliexpress, Olcha, Uzum Market, va h.k.",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -111,9 +122,9 @@ class Product(models.Model):
         verbose_name_plural = "Mahsulotlar"
         ordering = ("-is_featured", "-created_at")
         indexes = [
-            models.Index(fields=["status", "-created_at"]),
-            models.Index(fields=["category", "status"]),
-            models.Index(fields=["seller"]),
+            models.Index(fields=["status", "-created_at"], name="shop_produc_status_idx"),
+            models.Index(fields=["category", "status"], name="shop_produc_categ_idx"),
+            models.Index(fields=["seller"], name="shop_produc_seller_idx"),
         ]
 
     def save(self, *args, **kwargs):
@@ -252,14 +263,19 @@ class Order(models.Model):
         verbose_name_plural = "Buyurtmalar"
         ordering = ("-created_at",)
         indexes = [
-            models.Index(fields=["customer", "-created_at"]),
-            models.Index(fields=["status"]),
+            models.Index(fields=["customer", "-created_at"], name="shop_order_cust_idx"),
+            models.Index(fields=["status"], name="shop_order_status_idx"),
         ]
 
     def save(self, *args, **kwargs):
         if not self.order_number:
-            import secrets
-            self.order_number = "TG-" + secrets.token_hex(4).upper()
+            for _ in range(10):
+                candidate = "TG-" + secrets.token_hex(4).upper()
+                if not Order.objects.filter(order_number=candidate).exclude(pk=self.pk).exists():
+                    self.order_number = candidate
+                    break
+            if not self.order_number:
+                self.order_number = "TG-" + secrets.token_hex(8).upper()
         super().save(*args, **kwargs)
 
     def __str__(self):

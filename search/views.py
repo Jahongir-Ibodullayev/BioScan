@@ -75,6 +75,20 @@ import hashlib as _hashlib
 import json as _json
 
 
+def _int_query(query_params, name: str, default: int, *, min_value: int = 1,
+               max_value: int | None = None) -> int:
+    raw = query_params.get(name, default)
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        raise ValueError(f"{name} butun son bo'lishi kerak")
+    if value < min_value:
+        raise ValueError(f"{name} {min_value} dan kichik bo'lmasin")
+    if max_value is not None:
+        value = min(value, max_value)
+    return value
+
+
 def _safe_cache_key(namespace: str, path: str, params: dict) -> str:
     """Memcached-safe cache key — hash long/complex parts, no spaces."""
     raw = _json.dumps([path, sorted(params.items())], sort_keys=True, default=str)
@@ -160,7 +174,11 @@ def taxa_search(request):
     if not q_original:
         return Response({"detail": "q parametri majburiy"}, status=status.HTTP_400_BAD_REQUEST)
 
-    per_page = min(int(request.GET.get("per_page", 20)), 50)
+    try:
+        # 10 ta natija — chiroyli grid uchun (oldin 20 edi)
+        per_page = _int_query(request.GET, "per_page", 10, max_value=20)
+    except ValueError as e:
+        return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     locale = request.GET.get("locale", "uz")
 
     # ===== DB-first search =====
@@ -209,10 +227,28 @@ def taxa_search(request):
         # Local DB ishlamasa — iNat'ga o'tamiz
         pass
 
-    # 1) Uzbek → Latin translation
+    # 1) Uzbek → Latin translation: vocab + AI fallback
     resolved = resolve_uz(q_original)
     q_effective = resolved["latin"] if resolved else q_original
     is_uz_translated = bool(resolved)
+    ai_translated = False
+
+    # Vocab'da yo'q + so'rov o'zbekchaga o'xshasa → AI tarjimon
+    if not resolved:
+        try:
+            from search.uz_vocab import looks_uzbek
+            from togai.services.translate import uz_to_scientific
+            if looks_uzbek(q_original):
+                ai = uz_to_scientific(q_original)
+                if ai:
+                    # Ilmiy nom bo'lsa undan, bo'lmasa inglizcha umumiy nomdan
+                    candidate = ai.get("scientific") or ai.get("english")
+                    if candidate:
+                        q_effective = candidate
+                        is_uz_translated = True
+                        ai_translated = True
+        except Exception:
+            pass
 
     # 2) Query iNaturalist — if we translated, restrict to species rank to avoid
     #    random epithet collisions like "Antiblemma lola" when user searched "lola"
@@ -288,10 +324,62 @@ def taxa_search(request):
         ranked.sort(key=lambda r: r.get("observations_count") or 0, reverse=True)
         results = ranked + others
 
+    # 10 tagacha — gridda chiroyli ko'rinishi uchun
+    results = results[:per_page]
+
+    # ===== 4) Wikipedia — 3-manba sifatida natija oz bo'lsa to'ldiradi =====
+    # iNat har doim ham hamma narsani topavermaydi (mahalliy taom, urf-odat,
+    # arxaik o'zbek atamalari). Wikipedia keng qamrovli — 3-manba.
+    wiki_extras: list[dict] = []
+    try:
+        if len(results) < per_page:
+            need = per_page - len(results)
+            wiki_query = q_original  # asl o'zbek so'z bilan UZ wiki'da qidiramiz
+            wiki_hits = _wiki_search_with_thumbs(wiki_query, limit=need)
+            # Inglizcha tarjima ham bor bo'lsa — qo'shamiz (ko'proq variant)
+            if ai_translated and len(wiki_hits) < need and q_effective != q_original:
+                more = _wiki_search_with_thumbs(q_effective, limit=need - len(wiki_hits))
+                seen = {h["title"].lower() for h in wiki_hits}
+                for m in more:
+                    if m["title"].lower() not in seen:
+                        wiki_hits.append(m)
+
+            # iNat bilan dedupe — title iNat natijalari nomi bilan bir xil bo'lsa yo'q
+            inat_names = {(r.get("name") or "").lower() for r in results}
+            inat_names |= {(r.get("preferred_common_name") or "").lower() for r in results}
+            existing_ids: set[int] = set()
+            for w in wiki_hits:
+                if w["title"].lower() in inat_names:
+                    continue
+                wid = abs(hash(w.get("url") or w["title"])) % (10**9)
+                if wid in existing_ids:
+                    continue
+                existing_ids.add(wid)
+                wiki_extras.append({
+                    "id": -wid,  # manfiy — Wikipedia kelib chiqishi belgisi
+                    "name": w["title"],
+                    "preferred_common_name": w["title"],
+                    "rank": "wikipedia",
+                    "iconic_taxon_name": "Wikipedia",
+                    "observations_count": 0,
+                    "wikipedia_url": w.get("url"),
+                    "thumb": w.get("thumbnail"),
+                    "photo": w.get("thumbnail"),
+                    "extract": (w.get("extract") or "")[:160],
+                    "_source": "wikipedia",
+                    "_lang": w.get("lang"),
+                })
+            results = (results + wiki_extras)[:per_page]
+    except Exception:
+        # Wikipedia ishlamasa — katta gap emas, iNat natijalarini qaytaramiz
+        pass
+
     return Response({
-        "total": data.get("total_results"),
+        "total": len(results),
         "translated": is_uz_translated,
+        "ai_translated": ai_translated,
         "query_effective": q_effective,
+        "sources": ["inat"] + (["wikipedia"] if wiki_extras else []),
         "results": results,
     })
 
@@ -383,13 +471,16 @@ def nearest_observations(request):
 
     params = {
         "taxon_id": taxon_id,
-        "per_page": min(int(request.GET.get("per_page", 30)), 100),
         "order_by": "observed_on",
         "order": "desc",
         "photos": "true",
         "geo": "true",
         "quality_grade": "research,needs_id",
     }
+    try:
+        params["per_page"] = _int_query(request.GET, "per_page", 30, max_value=100)
+    except ValueError as e:
+        return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     lat = request.GET.get("lat")
     lng = request.GET.get("lng")
     radius = request.GET.get("radius")  # km
@@ -451,7 +542,10 @@ def browse(request):
     """
     from .uz_vocab import resolve_uz, resolve_latin
 
-    per_page = min(int(request.GET.get("per_page", 30)), 50)
+    try:
+        per_page = _int_query(request.GET, "per_page", 30, max_value=50)
+    except ValueError as e:
+        return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     locale = request.GET.get("locale", "uz")
     cat = (request.GET.get("category") or "").lower().strip()
     iconic = CATEGORY_MAP.get(cat)
@@ -613,14 +707,18 @@ def gbif_search(request):
     iNaturalist'dan 6× katta, lekin foto kamroq.
     """
     q = (request.GET.get("q") or "").strip()
-    limit = min(int(request.GET.get("limit", 30)), 100)
+    try:
+        limit = _int_query(request.GET, "limit", 30, max_value=100)
+        offset = _int_query(request.GET, "offset", 0, min_value=0)
+    except ValueError as e:
+        return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     cat = (request.GET.get("category") or "").lower().strip()
 
     params = {
         "q": q,
         "rank": request.GET.get("rank", "species"),
         "limit": limit,
-        "offset": int(request.GET.get("offset", 0)),
+        "offset": offset,
         "status": "ACCEPTED",
     }
     if cat and cat in GBIF_KINGDOM:
@@ -724,12 +822,16 @@ def gbif_detail(request, taxon_key: int):
 @permission_classes([permissions.AllowAny])
 def gbif_occurrences(request):
     """GET /api/search/gbif/occurrences/?taxonKey=X&country=UZ&limit=30"""
+    try:
+        limit = _int_query(request.GET, "limit", 30, max_value=100)
+    except ValueError as e:
+        return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     params = {
         "taxonKey": request.GET.get("taxonKey"),
         "country": (request.GET.get("country") or "UZ").upper(),
         "hasCoordinate": "true",
         "hasGeospatialIssue": "false",
-        "limit": min(int(request.GET.get("limit", 30)), 100),
+        "limit": limit,
         "mediaType": "StillImage",
     }
     if not params["taxonKey"]:
@@ -820,6 +922,91 @@ def _wiki_search(lang: str, query: str) -> str | None:
         return None
     except requests.RequestException:
         return None
+
+
+def _wiki_opensearch(lang: str, query: str, limit: int = 8) -> list[dict]:
+    """Wikipedia opensearch — bir nechta titles qaytaradi, keyin har biriga summary.
+
+    Tez: bitta API call bilan top-N titles, keyin parallel summary'lar.
+    Faqat tabiat/biologiyaga oid sahifalarni qaytaradi (qisqa filter).
+    """
+    if not query or len(query) < 2:
+        return []
+    cache_key = _safe_cache_key("wikiopen", f"{lang}:{query}:{limit}", {})
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached or []
+    try:
+        host = "https://uz.wikipedia.org" if lang == "uz" else f"https://{lang}.wikipedia.org"
+        # opensearch: 4 ta array — [query, titles, descriptions, urls]
+        r = requests.get(
+            f"{host}/w/api.php",
+            params={
+                "action": "opensearch",
+                "search": query,
+                "limit": limit,
+                "format": "json",
+                "namespace": 0,
+            },
+            headers={"User-Agent": UA},
+            timeout=TIMEOUT,
+        )
+        r.raise_for_status()
+        data = r.json()
+        if not isinstance(data, list) or len(data) < 4:
+            cache.set(cache_key, [], 60 * 60)
+            return []
+        titles = data[1] or []
+        descs = data[2] or []
+        urls = data[3] or []
+        results = []
+        for i, title in enumerate(titles):
+            results.append({
+                "title": title,
+                "desc": descs[i] if i < len(descs) else "",
+                "url": urls[i] if i < len(urls) else "",
+                "lang": lang,
+            })
+        cache.set(cache_key, results, 60 * 60 * 6)
+        return results
+    except requests.RequestException:
+        return []
+
+
+def _wiki_search_with_thumbs(query: str, limit: int = 5) -> list[dict]:
+    """Wikipedia title + rasm + qisqa tavsif — UZ → RU → EN tartibida.
+
+    Faqat birinchi til 2+ natija qaytarsa shu yerda to'xtaydi.
+    """
+    if not query:
+        return []
+    out: list[dict] = []
+    seen_titles: set[str] = set()
+    for lang in ("uz", "ru", "en"):
+        if len(out) >= limit:
+            break
+        opensearch = _wiki_opensearch(lang, query, limit=limit)
+        if not opensearch:
+            continue
+        # Har bir titleni cached summary bilan (rasm) boyitamiz
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=4) as ex:
+            summaries = list(ex.map(lambda h: _wiki_one(lang, h["title"]), opensearch))
+        for hit, summary in zip(opensearch, summaries):
+            if len(out) >= limit:
+                break
+            tkey = hit["title"].lower()
+            if tkey in seen_titles:
+                continue
+            seen_titles.add(tkey)
+            out.append({
+                "title": hit["title"],
+                "extract": (summary or {}).get("extract") if summary else hit.get("desc"),
+                "thumbnail": (summary or {}).get("thumbnail") if summary else None,
+                "url": hit.get("url") or ((summary or {}).get("url") if summary else None),
+                "lang": lang,
+            })
+    return out
 
 
 def _fetch_wikipedia_best(name: str, common: str = "") -> dict | None:
@@ -1103,8 +1290,10 @@ def wikipedia_summary(request):
     lang = request.GET.get("lang", "en")
     if not title:
         return Response({"detail": "title majburiy"}, status=status.HTTP_400_BAD_REQUEST)
+    if lang not in {"uz", "ru", "en"}:
+        return Response({"detail": "lang faqat uz, ru yoki en bo'lishi mumkin"}, status=status.HTTP_400_BAD_REQUEST)
 
-    base = WIKI_UZ if lang == "uz" else WIKI_EN
+    base = WIKI_UZ if lang == "uz" else (WIKI_EN if lang == "en" else "https://ru.wikipedia.org/api/rest_v1")
     key = _safe_cache_key("wiki", f"{lang}:{title}", {})
     cached = cache.get(key)
     if cached:

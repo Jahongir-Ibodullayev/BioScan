@@ -1,4 +1,4 @@
-import random
+import secrets
 from datetime import timedelta
 
 from django.contrib.auth.models import AbstractUser, BaseUserManager
@@ -95,7 +95,7 @@ class OTPCode(models.Model):
 
     @classmethod
     def issue(cls, phone: str) -> "OTPCode":
-        code = f"{random.randint(0, 999999):06d}"
+        code = f"{secrets.randbelow(1_000_000):06d}"
         # Invalidate previous unused OTPs for this phone
         cls.objects.filter(phone=phone, used=False).update(used=True)
         return cls.objects.create(phone=phone, code=code)
@@ -104,4 +104,4 @@ class OTPCode(models.Model):
         return not self.used and (timezone.now() - self.created_at) < timedelta(minutes=10)
 
     def __str__(self):
-        return f"{self.phone} · {self.code}"
+        return f"{self.phone} · ******"

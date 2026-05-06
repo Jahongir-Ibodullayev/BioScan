@@ -7,14 +7,13 @@ from django.db import migrations
 
 
 def forwards(apps, schema_editor):
-    """Seed shop with products by calling the management command logic."""
-    from django.core.management import call_command
-    try:
-        call_command("seed_shop")
-    except Exception as e:
-        # Migrationda xato bo'lsa logga yozamiz, lekin deploy buzmaymiz
-        import logging
-        logging.getLogger(__name__).warning("seed_shop failed: %s", e)
+    """Kept for migration history.
+
+    Real demo seed runs in 0003 after Product.image_url exists. Calling the
+    current seed command here breaks fresh installs because that column is not
+    present yet.
+    """
+    pass
 
 
 def reverse(apps, schema_editor):

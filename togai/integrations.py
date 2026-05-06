@@ -240,7 +240,14 @@ def identify_species_from_image(image_bytes: bytes, mime: str = "image/jpeg") ->
     return {"found": False, "reason": f"Barcha modellar ishlamadi. Oxirgi xato: {last_err}"}
 
 
-def groq_chat(prompt: str, system: str = "", model: str = "llama-3.3-70b-versatile") -> str:
+def groq_chat(
+    prompt: str,
+    system: str = "",
+    model: str = "llama-3.3-70b-versatile",
+    *,
+    max_tokens: int = 600,
+    temperature: float = 0.4,
+) -> str:
     """Groq tez LLM — AI chat uchun."""
     if not settings.GROQ_API_KEY:
         return "AI hozir mavjud emas. Kelajakda javob beraman."
@@ -254,8 +261,8 @@ def groq_chat(prompt: str, system: str = "", model: str = "llama-3.3-70b-versati
                     {"role": "system", "content": system or "Sen Tog'AI yordamchisisan. O'zbek tilida, qisqa va aniq javob ber."},
                     {"role": "user", "content": prompt},
                 ],
-                "max_tokens": 600,
-                "temperature": 0.4,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
             },
             timeout=30,
         )

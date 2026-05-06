@@ -35,9 +35,10 @@ class ProductListSerializer(serializers.ModelSerializer):
             "price", "discount_price", "currency",
             "category_name", "seller_name", "thumbnail",
             "rating", "reviews_count", "is_featured", "in_stock",
+            "external_url", "external_seller",
         )
 
-    def get_thumbnail(self, obj):
+    def get_thumbnail(self, obj) -> str | None:
         # 1) External URL (seed'dan kelgan Unsplash) eng birinchi
         if obj.image_url:
             return obj.image_url
@@ -68,7 +69,8 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "status", "is_featured",
             "rating", "reviews_count", "views_count", "sales_count",
             "category", "seller_id", "seller_name", "images",
-            "related_species",
+            "related_species", "image_url",
+            "external_url", "external_seller",
             "in_stock", "created_at",
         )
 
@@ -81,8 +83,24 @@ class ProductWriteSerializer(serializers.ModelSerializer):
             "title", "short_description", "description",
             "price", "discount_price", "currency",
             "stock_quantity", "sku", "brand",
-            "category", "status", "related_species",
+            "category", "status", "related_species", "image_url",
         )
+
+    def validate(self, attrs):
+        price = attrs.get("price", getattr(self.instance, "price", None))
+        discount = attrs.get("discount_price", getattr(self.instance, "discount_price", None))
+        stock = attrs.get("stock_quantity", getattr(self.instance, "stock_quantity", None))
+
+        if price is not None and price < 0:
+            raise serializers.ValidationError({"price": "Narx manfiy bo'lmasin."})
+        if discount is not None:
+            if discount <= 0:
+                raise serializers.ValidationError({"discount_price": "Chegirma narxi musbat bo'lishi kerak."})
+            if price is not None and discount >= price:
+                raise serializers.ValidationError({"discount_price": "Chegirma narxi asosiy narxdan kichik bo'lishi kerak."})
+        if stock is not None and stock < 0:
+            raise serializers.ValidationError({"stock_quantity": "Ombor soni manfiy bo'lmasin."})
+        return attrs
 
 
 class CartItemSerializer(serializers.ModelSerializer):
@@ -143,6 +161,8 @@ class CheckoutSerializer(serializers.Serializer):
 
 
 class ReviewSerializer(serializers.ModelSerializer):
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.filter(status=Product.STATUS_ACTIVE))
+    rating = serializers.IntegerField(min_value=1, max_value=5)
     user_name = serializers.CharField(source="user.full_name", read_only=True)
 
     class Meta:
@@ -153,7 +173,11 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 class WishlistSerializer(serializers.ModelSerializer):
     product = ProductListSerializer(read_only=True)
-    product_id = serializers.IntegerField(write_only=True)
+    product_id = serializers.PrimaryKeyRelatedField(
+        queryset=Product.objects.filter(status=Product.STATUS_ACTIVE),
+        source="product",
+        write_only=True,
+    )
 
     class Meta:
         model = Wishlist

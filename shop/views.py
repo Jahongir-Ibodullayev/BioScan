@@ -19,9 +19,11 @@ import logging
 from decimal import Decimal
 
 from django.db import transaction
+from django.db.models import Avg, Count, F
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from togai.throttles import AIChatThrottle
@@ -37,6 +39,21 @@ from .serializers import (
 )
 
 log = logging.getLogger(__name__)
+
+
+def _parse_int(value, field: str, default: int = 1, min_value: int = 1):
+    if value in (None, ""):
+        value = default
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None, Response(
+            {"detail": f"{field} butun son bo'lishi kerak"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if parsed < min_value:
+        return None, Response({"detail": f"{field} {min_value} dan kichik bo'lmasin"}, status=400)
+    return parsed, None
 
 
 # ============================================================
@@ -77,7 +94,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         # Increment views
-        Product.objects.filter(pk=instance.pk).update(views_count=instance.views_count + 1)
+        Product.objects.filter(pk=instance.pk).update(views_count=F("views_count") + 1)
         return super().retrieve(request, *args, **kwargs)
 
 
@@ -143,6 +160,7 @@ class SellerProductViewSet(viewsets.ModelViewSet):
 class CartViewSet(viewsets.ViewSet):
     """Foydalanuvchi savatchasi."""
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = CartSerializer
 
     def _get_cart(self, user):
         cart, _ = Cart.objects.get_or_create(user=user)
@@ -155,11 +173,13 @@ class CartViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"])
     def add(self, request):
         product_id = request.data.get("product_id")
-        quantity = int(request.data.get("quantity", 1))
+        quantity, error = _parse_int(request.data.get("quantity"), "quantity")
+        if error:
+            return error
         if not product_id:
             return Response({"detail": "product_id majburiy"}, status=400)
         product = get_object_or_404(Product, pk=product_id, status=Product.STATUS_ACTIVE)
-        if quantity < 1 or quantity > product.stock_quantity:
+        if quantity > product.stock_quantity:
             return Response({"detail": "Yaroqsiz son"}, status=400)
         cart = self._get_cart(request.user)
         item, created = CartItem.objects.get_or_create(
@@ -173,7 +193,9 @@ class CartViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"], url_path="update")
     def update_quantity(self, request):
         item_id = request.data.get("item_id")
-        quantity = int(request.data.get("quantity", 1))
+        quantity, error = _parse_int(request.data.get("quantity"), "quantity", min_value=0)
+        if error:
+            return error
         if not item_id:
             return Response({"detail": "item_id majburiy"}, status=400)
         item = get_object_or_404(CartItem, pk=item_id, cart__user=request.user)
@@ -215,15 +237,24 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
         if not cart or not cart.items.exists():
             return Response({"detail": "Savat bo'sh"}, status=400)
 
-        items = list(cart.items.select_related("product").all())
+        items = list(cart.items.select_related("product").select_for_update())
+        products = Product.objects.select_for_update().in_bulk([item.product_id for item in items])
         # Validate stock
         for item in items:
-            if item.quantity > item.product.stock_quantity:
+            product = products.get(item.product_id)
+            if not product or product.status != Product.STATUS_ACTIVE:
                 return Response({
-                    "detail": f"{item.product.title} — yetarli emas (mavjud: {item.product.stock_quantity})",
+                    "detail": f"{item.product.title} — hozir sotuvda emas",
+                }, status=400)
+            if item.quantity > product.stock_quantity:
+                return Response({
+                    "detail": f"{product.title} — yetarli emas (mavjud: {product.stock_quantity})",
                 }, status=400)
 
-        subtotal = sum((it.subtotal for it in items), Decimal("0"))
+        subtotal = sum(
+            (products[it.product_id].effective_price * it.quantity for it in items),
+            Decimal("0"),
+        )
         shipping = Decimal("20000")  # bepul yetkazib berish > 200K so'm
         if subtotal >= Decimal("200000"):
             shipping = Decimal("0")
@@ -237,18 +268,24 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
             total_amount=total,
         )
         for it in items:
+            product = products[it.product_id]
             OrderItem.objects.create(
                 order=order,
-                product=it.product,
-                title_snapshot=it.product.title,
-                price_snapshot=it.product.effective_price,
+                product=product,
+                title_snapshot=product.title,
+                price_snapshot=product.effective_price,
                 quantity=it.quantity,
             )
             # Stock kamaytirish
-            Product.objects.filter(pk=it.product.pk).update(
-                stock_quantity=it.product.stock_quantity - it.quantity,
-                sales_count=it.product.sales_count + it.quantity,
+            updated = Product.objects.filter(
+                pk=product.pk,
+                stock_quantity__gte=it.quantity,
+            ).update(
+                stock_quantity=F("stock_quantity") - it.quantity,
+                sales_count=F("sales_count") + it.quantity,
             )
+            if updated != 1:
+                raise ValidationError({"detail": f"{product.title} — ombor soni o'zgardi, qayta urinib ko'ring"})
 
         # Savatni tozalash
         cart.items.all().delete()
@@ -268,6 +305,20 @@ class WishlistViewSet(viewsets.ModelViewSet):
             return Wishlist.objects.none()
         return Wishlist.objects.filter(user=self.request.user)
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        product = serializer.validated_data["product"]
+        obj, created = Wishlist.objects.get_or_create(
+            user=request.user,
+            product=product,
+        )
+        data = self.get_serializer(obj).data
+        return Response(
+            data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
@@ -284,11 +335,12 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return qs
 
     def perform_create(self, serializer):
+        if Review.objects.filter(product=serializer.validated_data["product"], user=self.request.user).exists():
+            raise ValidationError({"detail": "Bu mahsulotga allaqachon sharh qoldirgansiz."})
         review = serializer.save(user=self.request.user)
         # Update product rating
         prod = review.product
-        all_reviews = prod.reviews.all()
-        avg = sum(r.rating for r in all_reviews) / max(len(all_reviews), 1)
-        prod.rating = round(avg, 2)
-        prod.reviews_count = len(all_reviews)
+        stats = prod.reviews.aggregate(avg=Avg("rating"), count=Count("id"))
+        prod.rating = round(stats["avg"] or 0, 2)
+        prod.reviews_count = stats["count"] or 0
         prod.save(update_fields=["rating", "reviews_count", "updated_at"])

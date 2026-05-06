@@ -16,6 +16,12 @@ SECRET_KEY = config("DJANGO_SECRET_KEY", default="dev-only-insecure-key-change-m
 DEBUG = config("DJANGO_DEBUG", default=True, cast=bool)
 ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS", default="*", cast=Csv())
 
+if DEBUG and "*" not in ALLOWED_HOSTS and "testserver" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append("testserver")
+
+# Temporary local/demo auth shortcut. Keep disabled in production unless explicitly enabled.
+QUICK_AUTH_ENABLED = config("QUICK_AUTH_ENABLED", default=DEBUG, cast=bool)
+
 # -------------------------------------------------------------------
 # Sentry — error tracking (disabled if SENTRY_DSN not set)
 # -------------------------------------------------------------------
@@ -79,6 +85,14 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=not DEBUG, cast=bool)
+SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=not DEBUG, cast=bool)
+CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=not DEBUG, cast=bool)
+SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=0 if DEBUG else 31536000, cast=int)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = config("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=not DEBUG, cast=bool)
+SECURE_HSTS_PRELOAD = config("SECURE_HSTS_PRELOAD", default=not DEBUG, cast=bool)
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 # WhiteNoise — serve static files in production
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
@@ -105,14 +119,17 @@ WSGI_APPLICATION = "togai.wsgi.application"
 # -------------------------------------------------------------------
 # Database
 # -------------------------------------------------------------------
-# Railway / Render / Heroku provide DATABASE_URL
+# Railway / Render / Heroku provide DATABASE_URL. Local development defaults
+# to SQLite; set USE_POSTGRES=True to use the DB_* settings below.
 DATABASE_URL = config("DATABASE_URL", default="")
+USE_POSTGRES = config("USE_POSTGRES", default=False, cast=bool)
+USE_SQLITE = config("USE_SQLITE", default=not USE_POSTGRES, cast=bool)
 if DATABASE_URL:
     import dj_database_url
     DATABASES = {
         "default": dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=False),
     }
-elif config("USE_SQLITE", default=False, cast=bool):
+elif USE_SQLITE:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
@@ -284,5 +301,9 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^http://localhost:\d+$",
     r"^http://127\.0\.0\.1:\d+$",
+    r"^http://0\.0\.0\.0:\d+$",
+    r"^http://172\.\d+\.\d+\.\d+:\d+$",
+    r"^http://192\.168\.\d+\.\d+:\d+$",
 ]
+CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL", default=DEBUG, cast=bool)
 CORS_ALLOW_CREDENTIALS = True

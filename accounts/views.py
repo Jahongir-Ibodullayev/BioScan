@@ -1,7 +1,10 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from togai.integrations import send_sms
 
 from .models import OTPCode
 from .serializers import (
@@ -21,16 +24,21 @@ class RequestOTPView(APIView):
     """
 
     permission_classes = [permissions.AllowAny]
+    serializer_class = RequestOTPSerializer
 
     def post(self, request):
-        ser = RequestOTPSerializer(data=request.data)
+        ser = self.serializer_class(data=request.data)
         ser.is_valid(raise_exception=True)
         phone = ser.validated_data["phone"]
         otp = OTPCode.issue(phone)
+        if not send_sms(phone, f"Tog'AI tasdiqlash kodi: {otp.code}. Kod 10 daqiqa amal qiladi."):
+            return Response(
+                {"detail": "SMS yuborilmadi. Keyinroq qayta urinib ko'ring."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
         data = {"ok": True, "phone": phone}
-        # DEV only — remove in production
-        from django.conf import settings as dj_settings
-        if dj_settings.DEBUG:
+        # DEV only — productionda kod response'ga chiqmaydi.
+        if settings.DEBUG:
             data["dev_code"] = otp.code
         return Response(data, status=status.HTTP_201_CREATED)
 
@@ -40,9 +48,10 @@ class VerifyOTPView(APIView):
     Agar foydalanuvchi mavjud bo'lmasa, yaratib — JWT qaytaradi."""
 
     permission_classes = [permissions.AllowAny]
+    serializer_class = VerifyOTPSerializer
 
     def post(self, request):
-        ser = VerifyOTPSerializer(data=request.data)
+        ser = self.serializer_class(data=request.data)
         ser.is_valid(raise_exception=True)
         phone = ser.validated_data["phone"]
         code = ser.validated_data["code"]
@@ -74,9 +83,16 @@ class QuickAuthView(APIView):
     """
 
     permission_classes = [permissions.AllowAny]
+    serializer_class = RequestOTPSerializer
 
     def post(self, request):
-        ser = RequestOTPSerializer(data=request.data)
+        if not settings.QUICK_AUTH_ENABLED:
+            return Response(
+                {"detail": "Quick auth o'chirilgan. OTP orqali kiring."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        ser = self.serializer_class(data=request.data)
         ser.is_valid(raise_exception=True)
         phone = ser.validated_data["phone"]
         full_name = (request.data.get("full_name") or "").strip()

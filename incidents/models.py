@@ -1,3 +1,5 @@
+import secrets
+
 from django.conf import settings
 from django.db import models
 
@@ -56,8 +58,14 @@ class Incident(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.code:
-            import random
-            self.code = f"TAI-{random.randint(10000, 99999)}"
+            for _ in range(10):
+                candidate = f"TAI-{secrets.randbelow(100000):05d}"
+                if not Incident.objects.filter(code=candidate).exclude(pk=self.pk).exists():
+                    self.code = candidate
+                    break
+            if not self.code:
+                # Extremely unlikely fallback if all short codes collided.
+                self.code = f"TAI-{secrets.token_hex(4).upper()}"
         super().save(*args, **kwargs)
 
     def __str__(self):
