@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     "saved_items",
     "bot",
     "search",
+    "shop",
 ]
 
 MIDDLEWARE = [

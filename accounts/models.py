@@ -53,6 +53,22 @@ class User(AbstractUser):
     locale = models.CharField("Til", max_length=5, default="uz")
     verified_member = models.BooleanField("Tasdiqlangan a'zo", default=False)
 
+    # E-commerce role: customer (default), seller, super_admin
+    ACCOUNT_CUSTOMER = "customer"
+    ACCOUNT_SELLER = "seller"
+    ACCOUNT_ADMIN = "super_admin"
+    ACCOUNT_CHOICES = [
+        (ACCOUNT_CUSTOMER, "Mijoz"),
+        (ACCOUNT_SELLER, "Sotuvchi"),
+        (ACCOUNT_ADMIN, "Super admin"),
+    ]
+    account_type = models.CharField(
+        "Hisob turi", max_length=20, choices=ACCOUNT_CHOICES, default=ACCOUNT_CUSTOMER,
+    )
+    seller_name = models.CharField("Do'kon nomi", max_length=120, blank=True)
+    seller_bio = models.TextField("Sotuvchi haqida", blank=True)
+    seller_verified = models.BooleanField("Sotuvchi tasdiqlangan", default=False)
+
     USERNAME_FIELD = "phone"
     REQUIRED_FIELDS: list[str] = []
 
