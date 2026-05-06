@@ -38,6 +38,10 @@ class ProductListSerializer(serializers.ModelSerializer):
         )
 
     def get_thumbnail(self, obj):
+        # 1) External URL (seed'dan kelgan Unsplash) eng birinchi
+        if obj.image_url:
+            return obj.image_url
+        # 2) ProductImage uploads
         main = obj.images.filter(is_main=True).first() or obj.images.first()
         if main and main.image:
             request = self.context.get("request")

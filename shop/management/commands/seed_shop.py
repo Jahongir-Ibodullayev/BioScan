@@ -218,6 +218,11 @@ class Command(BaseCommand):
                 reviews = random.randint(3, 220)
                 is_featured = random.random() < 0.15
 
+                # Unsplash URL'ga ?w=600&q=80 qo'shamiz — kichikroq, optimallashtirilgan
+                full_image_url = image_url
+                if "unsplash.com" in image_url and "?" not in image_url:
+                    full_image_url = f"{image_url}?auto=format&fit=crop&w=600&q=80"
+
                 Product.objects.update_or_create(
                     title=title,
                     defaults={
@@ -233,6 +238,7 @@ class Command(BaseCommand):
                         "rating": Decimal(str(rating)),
                         "reviews_count": reviews,
                         "ai_generated_description": False,
+                        "image_url": full_image_url,
                     },
                 )
                 total += 1

@@ -100,6 +100,9 @@ class Product(models.Model):
         help_text="Tabiat turi bilan bog'liq mahsulot (asal, dorivor giyoh, h.k.)",
     )
 
+    # External image URL (Unsplash, CDN). ProductImage'siz tezroq ko'rsatish uchun
+    image_url = models.URLField(blank=True, max_length=500, help_text="Tashqi rasm URL")
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
