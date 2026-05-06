@@ -1,9 +1,10 @@
 from rest_framework import permissions, viewsets
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes, throttle_classes
 from rest_framework.response import Response
 
 from catalog.models import Species
 from togai.integrations import groq_chat
+from togai.throttles import AIChatThrottle
 
 from .models import Conversation, Message
 from .serializers import AskSerializer, ConversationSerializer, MessageSerializer
@@ -121,6 +122,7 @@ def _find_species_in_text(text: str):
 
 @api_view(["POST"])
 @permission_classes([permissions.AllowAny])
+@throttle_classes([AIChatThrottle])
 def ai_public(request):
     """POST /api/chat/ai/  {text, species_slug?}
     Public AI — no auth, no persistence. Fast path for Scan→Chat flow.

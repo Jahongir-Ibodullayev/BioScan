@@ -183,10 +183,15 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.ScopedRateThrottle",
     ),
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "60/min",
+        # Global per-IP / per-user fallback
+        "anon": "120/min",
         "user": "300/min",
+        # Scoped — qimmat AI endpoints
         "otp": "5/min",
-        "scan": "30/min",
+        "scan": "10/min",            # AI vision: anon ham 10 daqiqada — bot spam to'sish
+        "ai_chat": "20/min",         # Groq LLM chat
+        "ai_enrich": "30/min",       # Wikipedia + AI enrich
+        "ai_help": "20/min",         # AI search assistant
         "search": "120/min",
     },
 }
@@ -208,14 +213,24 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {"format": "[{asctime}] {levelname} {name} · {message}", "style": "{"},
+        # JSON format — Railway/Logtail/Datadog parser uchun
+        "json": {
+            "()": "togai.log_formatter.JSONFormatter",
+        },
     },
     "handlers": {
-        "console": {"class": "logging.StreamHandler", "formatter": "verbose"},
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "json" if not DEBUG else "verbose",
+        },
     },
     "root": {"handlers": ["console"], "level": "INFO"},
     "loggers": {
         "django.request": {"level": "WARNING", "handlers": ["console"], "propagate": False},
         "django.db.backends": {"level": "WARNING", "handlers": ["console"], "propagate": False},
+        # 4xx/5xx responses ham log'ga tushadi
+        "django.server": {"level": "INFO", "handlers": ["console"], "propagate": False},
+        "togai": {"level": "INFO", "handlers": ["console"], "propagate": False},
     },
 }
 

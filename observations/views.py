@@ -6,6 +6,7 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
+from togai.throttles import ScanThrottle
 
 from catalog.models import Species
 from togai.integrations import identify_species_from_image
@@ -36,6 +37,7 @@ class ObservationViewSet(viewsets.ModelViewSet):
         url_path="scan",
         parser_classes=[MultiPartParser, FormParser],
         permission_classes=[permissions.AllowAny],
+        throttle_classes=[ScanThrottle],
     )
     def scan(self, request):
         """AI tur aniqlash — Groq Vision (llama-3.2-90b-vision).

@@ -7,7 +7,10 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 
+from togai.health import health
+
 api_patterns = [
+    path("health/", health, name="health"),
     path("auth/", include("accounts.urls")),
     path("species/", include("catalog.urls")),
     path("observations/", include("observations.urls")),

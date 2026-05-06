@@ -13,8 +13,10 @@ from __future__ import annotations
 import requests
 from django.core.cache import cache
 from rest_framework import permissions, status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.response import Response
+
+from togai.throttles import AIEnrichThrottle, AIHelpThrottle
 
 from .uz_vocab import resolve_uz
 
@@ -816,6 +818,7 @@ def _fetch_wikipedia_best(name: str, common: str = "") -> dict | None:
 
 @api_view(["GET"])
 @permission_classes([permissions.AllowAny])
+@throttle_classes([AIHelpThrottle])
 def ai_help(request):
     """GET /api/search/ai-help/?q=lola
 
@@ -881,6 +884,7 @@ def ai_help(request):
 
 @api_view(["GET"])
 @permission_classes([permissions.AllowAny])
+@throttle_classes([AIEnrichThrottle])
 def enrich(request):
     """GET /api/search/enrich/?name=Alhagi%20pseudalhagi&common=Yantoq
 
