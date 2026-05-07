@@ -1,0 +1,27 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<style>
+  .push-card { background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.08); max-width: 640px; }
+  .push-card h2 { margin-top: 0; }
+  .push-card label { display: block; margin-top: 16px; font-weight: 600; }
+  .push-card input, .push-card textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+  .push-card .btn { margin-top: 16px; background: #D4FA2C; color: #0C1220; padding: 12px 24px; border: 0; border-radius: 99px; font-weight: 700; cursor: pointer; }
+  .push-card .meta { color: #777; margin-bottom: 16px; }
+  .push-card .result { margin-top: 16px; padding: 12px; border-radius: 8px; background: #ECFCCB; color: #2F5800; font-weight: 600; }
+</style>
+<div class="push-card">
+  <h2>📢 Push xabar yuborish</h2>
+  <p class="meta">Qabul qiladiganlar soni: <strong>{{ user_count }}</strong> foydalanuvchi (FCM token bilan)</p>
+  {% if result %}
+    <div class="result">{{ result }}</div>
+  {% endif %}
+  <form method="post">
+    {% csrf_token %}
+    <label>Sarlavha</label>
+    <input type="text" name="title" maxlength="100" placeholder="Yangi tur qo'shildi!" required>
+    <label>Matn</label>
+    <textarea name="body" rows="4" maxlength="500" placeholder="Buxoro lolasini ko'ring..." required></textarea>
+    <button type="submit" class="btn">📤 Hammaga yuborish</button>
+  </form>
+</div>
+{% endblock %}

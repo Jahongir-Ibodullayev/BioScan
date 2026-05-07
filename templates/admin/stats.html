@@ -1,0 +1,46 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<style>
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+  .stat { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .stat .num { font-size: 32px; font-weight: 800; color: #0C1220; line-height: 1; margin: 8px 0; }
+  .stat .label { color: #777; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  .stat.lime { background: #D4FA2C; }
+  .stat.red { background: #FEE2E2; }
+</style>
+<h1>📊 BioScan Statistika</h1>
+<div class="stats">
+  <div class="stat lime">
+    <div class="label">Foydalanuvchilar</div>
+    <div class="num">{{ users_total }}</div>
+  </div>
+  <div class="stat">
+    <div class="label">Telegram ulangan</div>
+    <div class="num">{{ users_with_telegram }}</div>
+  </div>
+  <div class="stat">
+    <div class="label">Push qabul qiladi</div>
+    <div class="num">{{ users_with_fcm }}</div>
+  </div>
+  <div class="stat">
+    <div class="label">Jami turlar</div>
+    <div class="num">{{ species_total }}</div>
+  </div>
+  <div class="stat red">
+    <div class="label">Qizil kitob turlari</div>
+    <div class="num">{{ species_redbook }}</div>
+  </div>
+  <div class="stat">
+    <div class="label">Skanlar (jami)</div>
+    <div class="num">{{ scans_total }}</div>
+  </div>
+  <div class="stat">
+    <div class="label">Mahsulotlar</div>
+    <div class="num">{{ products_total }}</div>
+  </div>
+  <div class="stat">
+    <div class="label">Buyurtmalar</div>
+    <div class="num">{{ orders_total }}</div>
+  </div>
+</div>
+{% endblock %}

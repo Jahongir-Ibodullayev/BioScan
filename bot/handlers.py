@@ -40,6 +40,60 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=keyboards.main_menu(),
     )
 
+    # Bot reklama (agar adminkada faol Ad bo'lsa)
+    try:
+        from asgiref.sync import sync_to_async
+        from django.utils import timezone
+        from django.db.models import Q, F
+        from ads.models import Ad
+
+        @sync_to_async
+        def get_ad():
+            now = timezone.now()
+            qs = Ad.objects.filter(
+                is_active=True,
+                slot=Ad.SLOT_BOT,
+                starts_at__lte=now,
+                platform__in=["all", "bot"],
+            ).filter(Q(ends_at__isnull=True) | Q(ends_at__gte=now)).order_by("-priority")
+            ad = qs.first()
+            if ad:
+                Ad.objects.filter(pk=ad.pk).update(impressions=F("impressions") + 1)
+            return ad
+
+        ad = await get_ad()
+        if ad:
+            from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+            text_parts = []
+            if ad.headline:
+                text_parts.append(f"<b>{ad.headline}</b>")
+            if ad.body:
+                text_parts.append(ad.body)
+            text_parts.append("\n<i>📢 Reklama</i>")
+            text = "\n".join(text_parts)
+            kb = None
+            if ad.target_url:
+                kb = InlineKeyboardMarkup([[
+                    InlineKeyboardButton(ad.cta_text or "Batafsil", url=ad.target_url)
+                ]])
+            try:
+                if ad.image_url:
+                    await update.message.reply_photo(
+                        photo=ad.image_url,
+                        caption=text,
+                        parse_mode=ParseMode.HTML,
+                        reply_markup=kb,
+                    )
+                else:
+                    await update.message.reply_text(
+                        text, parse_mode=ParseMode.HTML, reply_markup=kb,
+                    )
+            except Exception:
+                pass
+    except Exception:
+        # Reklama xato bo'lsa salomlash buzilmasin
+        pass
+
 
 async def app_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Open the web app directly."""

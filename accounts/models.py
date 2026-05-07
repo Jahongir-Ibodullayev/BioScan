@@ -78,6 +78,16 @@ class User(AbstractUser):
         "Telegram username", max_length=64, blank=True,
     )
 
+    # Firebase Cloud Messaging — push notification token
+    fcm_token = models.CharField(
+        "FCM token", max_length=255, blank=True, db_index=True,
+        help_text="Firebase Cloud Messaging — push xabarlari uchun",
+    )
+    fcm_platform = models.CharField(
+        "Qurilma platformasi", max_length=20, blank=True,
+        help_text="android | ios | web",
+    )
+
     USERNAME_FIELD = "phone"
     REQUIRED_FIELDS: list[str] = []
 
