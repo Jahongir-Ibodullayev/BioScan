@@ -1,3 +1,4 @@
+import base64
 import logging
 import secrets
 from datetime import datetime
@@ -264,3 +265,65 @@ class ObservationViewSet(viewsets.ModelViewSet):
             "observation_id": obs.id if obs else None,
             "new_species": created,
         })
+
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="scan-async",
+        parser_classes=[MultiPartParser, FormParser],
+        permission_classes=[permissions.AllowAny],
+        throttle_classes=[ScanThrottle],
+    )
+    def scan_async(self, request):
+        """Background AI scan — Celery worker'ga task tashlaydi.
+
+        Foydalanuvchi darhol task_id oladi va `/scan-status/<id>/` orqali
+        natijani so'rab turadi (poll). Bir vaqtda 100+ scan kuta oladi —
+        gunicorn worker'larini bloklamaydi.
+
+        POST multipart: photo, lat?, lng?
+        Response: {task_id: "abc123", status: "queued"}
+        """
+        req = ScanRequestSerializer(data=request.data)
+        req.is_valid(raise_exception=True)
+
+        photo = req.validated_data["photo"]
+        image_bytes = photo.read()
+        photo.seek(0)
+        image_b64 = base64.b64encode(image_bytes).decode()
+
+        from togai.tasks import identify_species_async
+        task = identify_species_async.delay(
+            image_b64,
+            mime=photo.content_type or "image/jpeg",
+        )
+        return Response(
+            {"task_id": task.id, "status": "queued"},
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="scan-status/(?P<task_id>[^/.]+)",
+        permission_classes=[permissions.AllowAny],
+    )
+    def scan_status(self, request, task_id=None):
+        """Celery task holatini tekshirish — frontend polling uchun.
+
+        GET /api/observations/scan-status/<task_id>/
+        Response: {status: "pending|started|success|failure", result?: {...}}
+        """
+        from celery.result import AsyncResult
+        result = AsyncResult(task_id)
+        state = result.state.lower()
+
+        data = {"task_id": task_id, "status": state}
+        if result.ready():
+            try:
+                data["result"] = result.result if result.successful() else None
+                if result.failed():
+                    data["error"] = str(result.result)
+            except Exception as e:
+                data["error"] = str(e)
+        return Response(data)
