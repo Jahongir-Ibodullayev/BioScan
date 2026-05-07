@@ -83,6 +83,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Vercel edge caching — anonim GET javoblariga Cache-Control qo'yadi
+    "togai.middleware.EdgeCacheMiddleware",
 ]
 
 SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=not DEBUG, cast=bool)
