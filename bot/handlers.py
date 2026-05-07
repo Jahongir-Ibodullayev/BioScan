@@ -34,10 +34,36 @@ def _normalize_phone(raw: str) -> str:
 # ------------------------------------------------------------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
+
+    # 1) Welcome xabar + persistent menu (pastdagi tugmalar)
     await update.message.reply_text(
         formatters.welcome_text(user.first_name or "Do'stim"),
         parse_mode=ParseMode.HTML,
         reply_markup=keyboards.main_menu(),
+    )
+
+    # 2) Yorqin inline WebApp tugmasi — alohida xabar bilan, foydalanuvchi
+    #    "scriptka" o'rniga to'g'ridan-to'g'ri ilovaga kirish uchun bossa bo'lsin.
+    from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+    web_app_url = "https://startup-seven-pied.vercel.app"
+    inline_kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton(
+            "🌿 BioScan ilovasini ochish",
+            web_app=WebAppInfo(url=web_app_url),
+        )],
+        [
+            InlineKeyboardButton("📷 Skanerlash", web_app=WebAppInfo(url=f"{web_app_url}/app/scanner")),
+            InlineKeyboardButton("📕 Qizil kitob", web_app=WebAppInfo(url=f"{web_app_url}/app/red-book")),
+        ],
+        [
+            InlineKeyboardButton("🗺 Xarita", web_app=WebAppInfo(url=f"{web_app_url}/app/map")),
+            InlineKeyboardButton("🛍 Magazin", web_app=WebAppInfo(url=f"{web_app_url}/app/shop")),
+        ],
+    ])
+    await update.message.reply_text(
+        "👇 <b>Tezkor kirish</b> — istalgan tugmani bosing:",
+        parse_mode=ParseMode.HTML,
+        reply_markup=inline_kb,
     )
 
 
