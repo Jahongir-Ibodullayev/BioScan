@@ -43,22 +43,14 @@ def ai_has_key() -> bool:
 
 # Model ro'yxati — provider-dependent. OpenRouter'da provider/model formatda.
 def vision_models() -> list[str]:
-    """Vision-capable models — verified to work with current OpenRouter key.
-
-    Ordered cheap → expensive. First successful response wins.
-    """
+    """Vision-capable models — verified to work with current OpenRouter key."""
     if getattr(settings, "OPENROUTER_API_KEY", ""):
-        # Faqat ishonchli ishlovchi modellar — 404 bo'layotganlar olib tashlandi.
-        # Birinchi muvaffaqiyatli javob g'oliblik qiladi → AI sekinligi minimal.
         return [
-            # Cheap & accurate, vision-capable — Azure-backed, ishonchli
+            # Verified live with current key — first one that responds wins
             "openai/gpt-4o-mini",
-            # Google Gemini Flash 1.5 — vision, fast, cheap
-            "google/gemini-flash-1.5",
-            # Mistral Pixtral 12B — vision, fast
-            "mistralai/pixtral-12b",
+            "qwen/qwen2.5-vl-72b-instruct",
+            "meta-llama/llama-3.2-11b-vision-instruct",
         ]
-    # Groq fallback
     return [
         "meta-llama/llama-4-scout-17b-16e-instruct",
         "meta-llama/llama-4-maverick-17b-128e-instruct",
@@ -188,15 +180,15 @@ SEDANA (Nigella):
     {"name": "O'zbekcha nom 2", "latin": "Latin 2", "confidence": 0.0-1.0, "why": "nima uchun"},
     {"name": "O'zbekcha nom 3", "latin": "Latin 3", "confidence": 0.0-1.0, "why": "nima uchun"}
   ],
-  "summary": "1-2 jumla tavsif",
-  "description": "3-5 jumla to'liq tavsif",
-  "habitat": "Qayerda o'sadi",
-  "uses": "Foydasi",
-  "warnings": "Xavfi",
-  "first_aid": "Xavf bo'lsa yordam, yo'q bo'lsa bo'sh",
+  "summary": "1-2 jumla qisqa tavsif",
+  "description": "MAJBURIY 4-6 jumla to'liq tavsif: morfologiya, oila, hayot davri, xususiyat",
+  "habitat": "MAJBURIY 2-3 jumla: qayerda o'sadi, qaysi balandlikda, iqlim, tuproq",
+  "uses": "MAJBURIY 3-4 jumla: tibbiyotda, oziq-ovqatda, hunarda, dekorativ — har bir foyda detallarda",
+  "warnings": "MAJBURIY 2-3 jumla: zaharlimi, allergen, qaysi qism xavfli, kim foydalanmasligi kerak",
+  "first_aid": "MAJBURIY 2-3 jumla: zahar tegsa nima qilish, zudlik bilan yordam ko'rsatish bosqichlari (yoki agar xavf yo'q bo'lsa: 'Xavfsiz tur')",
   "red_book": true/false,
   "iucn_status": "LC/NT/VU/EN/CR/NE",
-  "regions": "Qayerda tarqalgan"
+  "regions": "MAJBURIY: O'zbekiston/Markaziy Osiyoda qayerlarda tarqalgan, qaysi viloyatlar"
 }
 
 Aniqlanmasa (rasmda o'simlik/hayvon ko'rinmasa): {"found": false, "reason": "sabab"}
@@ -251,12 +243,10 @@ def identify_species_from_image(image_bytes: bytes, mime: str = "image/jpeg") ->
                         }
                     ],
                     "temperature": 0.1,
-                    "max_tokens": 1500,
-                    # response_format'siz — ba'zi modellar (Pixtral, Gemini)
-                    # uni qo'llab-quvvatlamaydi va 400 qaytaradi.
-                    # Promptda "Faqat JSON" deyilgan, model itoat qiladi.
+                    "max_tokens": 2000,
+                    "response_format": {"type": "json_object"},
                 },
-                timeout=12,  # tez fail — keyingi modelga o'tish uchun
+                timeout=30,
             )
             if r.status_code >= 400:
                 body = r.text[:300]
@@ -265,8 +255,28 @@ def identify_species_from_image(image_bytes: bytes, mime: str = "image/jpeg") ->
                 continue
 
             data = r.json()
-            content = data["choices"][0]["message"]["content"]
-            parsed = json.loads(content)
+            content = (data["choices"][0]["message"].get("content") or "").strip()
+            if not content:
+                log.warning("AI %s returned empty content; refusal=%s",
+                            model, data["choices"][0]["message"].get("refusal"))
+                last_err = f"{model}: empty response"
+                continue
+            # Strip markdown code fences if any: ```json ... ```
+            if content.startswith("```"):
+                content = content.strip("`")
+                if content.lower().startswith("json"):
+                    content = content[4:].strip()
+            try:
+                parsed = json.loads(content)
+            except json.JSONDecodeError:
+                # Attempt to find first JSON object in the content
+                import re
+                m = re.search(r"\{[\s\S]*\}", content)
+                if not m:
+                    log.warning("AI %s non-JSON content: %s", model, content[:200])
+                    last_err = f"{model}: non-JSON output"
+                    continue
+                parsed = json.loads(m.group(0))
             log.info("✓ Groq (%s) identified: %s (conf=%.2f)", model, parsed.get("latin"), parsed.get("confidence", 0))
 
             # GUARD: confidence floor — past confidence past = "topilmadi"
