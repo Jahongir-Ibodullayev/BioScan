@@ -47,7 +47,7 @@ class Species(models.Model):
     first_aid = models.TextField(blank=True)
 
     image = models.ImageField(upload_to="species/", null=True, blank=True)
-    image_url = models.URLField(blank=True, help_text="Optional external image (Unsplash, Wikipedia)")
+    image_url = models.URLField(blank=True, max_length=600, help_text="Optional external image (Unsplash, Wikipedia)")
 
     red_book = models.BooleanField(default=False, help_text="Mahalliy Qizil kitobda")
     iucn_status = models.CharField(
