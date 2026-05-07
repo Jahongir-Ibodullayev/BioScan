@@ -203,9 +203,9 @@ def identify_species_from_image(image_bytes: bytes, mime: str = "image/jpeg") ->
     if not ai_has_key():
         return {"found": False, "reason": "AI kalit sozlanmagan (OPENROUTER_API_KEY/GROQ_API_KEY)"}
 
-    # 1. Rasmni siqish — Groq limit: 4MB base64 (~3MB faylga to'g'ri keladi)
+    # 1. Rasmni siqish — kichikroq = tezroq upload + kam token sarfi
     try:
-        compressed = _compress_image(image_bytes, max_dim=1024, quality=82)
+        compressed = _compress_image(image_bytes, max_dim=768, quality=78)
     except Exception as e:
         log.exception("Image compress error: %s", e)
         return {"found": False, "reason": "Rasmni qayta ishlashda xatolik"}
