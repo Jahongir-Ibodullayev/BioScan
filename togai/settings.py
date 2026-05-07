@@ -74,6 +74,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "django.middleware.gzip.GZipMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -287,7 +288,7 @@ IUCN_API_TOKEN = config("IUCN_API_TOKEN", default="")
 GROQ_API_KEY = config("GROQ_API_KEY", default="")
 OPENROUTER_API_KEY = config("OPENROUTER_API_KEY", default="")
 OPENROUTER_REFERER = config("OPENROUTER_REFERER", default="https://togai.uz")
-OPENROUTER_TITLE = config("OPENROUTER_TITLE", default="Tog'AI")
+OPENROUTER_TITLE = config("OPENROUTER_TITLE", default="BioScan")
 
 # Telegram bot — asosiy bot (skaner, chat, qidiruv)
 TELEGRAM_BOT_TOKEN = config("TELEGRAM_BOT_TOKEN", default="")
@@ -306,7 +307,7 @@ SIMPLE_JWT = {
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "Tog'AI API",
+    "TITLE": "BioScan API",
     "DESCRIPTION": "Dunyo tabiati — o'simlik, hayvon, hasharot AI yordamchisi",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,

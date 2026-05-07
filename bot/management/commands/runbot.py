@@ -15,7 +15,7 @@ from bot import handlers
 
 
 class Command(BaseCommand):
-    help = "Tog'AI Telegram botini ishga tushirish (uzoq-polling rejimida)"
+    help = "BioScan Telegram botini ishga tushirish (uzoq-polling rejimida)"
 
     def handle(self, *args, **opts):
         token = config("TELEGRAM_BOT_TOKEN", default=None)
@@ -57,5 +57,5 @@ class Command(BaseCommand):
         # Errors
         app.add_error_handler(handlers.on_error)
 
-        self.stdout.write(self.style.SUCCESS("🤖 Tog'AI bot ishga tushdi — polling..."))
+        self.stdout.write(self.style.SUCCESS("🤖 BioScan bot ishga tushdi — polling..."))
         app.run_polling(allowed_updates=["message", "callback_query", "contact"])

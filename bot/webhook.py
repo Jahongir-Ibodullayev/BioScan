@@ -86,7 +86,7 @@ def telegram_webhook(request):
             "sendMessage",
             chat_id=chat_id,
             text=(
-                "🔐 <b>Tog'AI hisobiga ulanish</b>\n\n"
+                "🔐 <b>BioScan hisobiga ulanish</b>\n\n"
                 "Pastdagi tugmani bosib, telefon raqamingizni ulashing. "
                 "Keyin webapp yoki APK'da shu raqam bilan kirayotganda, "
                 "tasdiqlash kodi shu yerga keladi."

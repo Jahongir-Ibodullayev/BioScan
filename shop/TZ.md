@@ -1,8 +1,8 @@
-# Tog'AI E-Commerce — Texnik Vazifa
+# BioScan E-Commerce — Texnik Vazifa
 
 ## 1. Maqsad
 
-Tog'AI ekosistemasi ichida **tabiat sevuvchilar uchun bozor** — sayohat anjomlari, dorivor giyohlar, asal, yog'och, mahalliy hunarmandchilik mahsulotlari. AI yordamida tavsif yaratish va Tog'AI catalog turlari bilan bog'lash imkoniyati.
+BioScan ekosistemasi ichida **tabiat sevuvchilar uchun bozor** — sayohat anjomlari, dorivor giyohlar, asal, yog'och, mahalliy hunarmandchilik mahsulotlari. AI yordamida tavsif yaratish va BioScan catalog turlari bilan bog'lash imkoniyati.
 
 ## 2. Foydalanuvchi rollari
 

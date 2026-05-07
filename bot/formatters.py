@@ -1,4 +1,4 @@
-"""Message formatters for the Tog'AI bot."""
+"""Message formatters for the BioScan bot."""
 from catalog.models import Species
 
 
@@ -120,7 +120,7 @@ def ai_answer(s: Species, kind: str) -> str:
 def welcome_text(user_first_name: str) -> str:
     return (
         f"Assalomu alaykum, <b>{user_first_name}</b>! 🌿\n\n"
-        "Men — <b>Tog'AI</b> botiman. Tabiatni tanib, xavfsiz bo'lishingizga yordam beraman.\n\n"
+        "Men — <b>BioScan</b> botiman. Tabiatni tanib, xavfsiz bo'lishingizga yordam beraman.\n\n"
         "<b>Nima qila olaman:</b>\n"
         "📷 O'simlik/hayvon rasmini yuboring — 2 soniyada aniqlayman\n"
         "📚 Qizil kitob va foydali giyohlar bazasi\n"

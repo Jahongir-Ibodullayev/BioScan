@@ -46,12 +46,12 @@ async def app_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
     kb = InlineKeyboardMarkup([[
         InlineKeyboardButton(
-            "🌿 Tog'AI ilovasini ochish",
+            "🌿 BioScan ilovasini ochish",
             web_app=WebAppInfo(url="https://startup-seven-pied.vercel.app"),
         )
     ]])
     await update.message.reply_text(
-        "🌿 <b>Tog'AI — Tabiatingni kashf qil</b>\n\n"
+        "🌿 <b>BioScan — Tabiatingni kashf qil</b>\n\n"
         "To'liq web-ilovadan foydalaning: AI skaner, Qizil kitob, xarita, namoz vaqti, chat…",
         parse_mode=ParseMode.HTML,
         reply_markup=kb,
@@ -59,7 +59,7 @@ async def app_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def login_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Foydalanuvchini Tog'AI hisobiga ulash — telefon raqamini so'raydi.
+    """Foydalanuvchini BioScan hisobiga ulash — telefon raqamini so'raydi.
 
     Foydalanuvchi raqamni ulashdan keyin contact_handler ishga tushadi va
     User'ning telegram_id'sini saqlab qoyadi. Keyin webapp/APK kirayotganda
@@ -71,7 +71,7 @@ async def login_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         one_time_keyboard=True,
     )
     await update.message.reply_text(
-        "🔐 <b>Tog'AI hisobiga ulanish</b>\n\n"
+        "🔐 <b>BioScan hisobiga ulanish</b>\n\n"
         "Pastdagi tugmani bosib, telefon raqamingizni ulashing. "
         "Endi webapp yoki APK'ga kirayotganda, tasdiqlash kodi shu yerga keladi.\n\n"
         "<i>Sizning raqamingiz faqat OTP yuborish uchun ishlatiladi.</i>",
@@ -257,7 +257,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     base = "https://startup-seven-pied.vercel.app"
 
     MAP = {
-        "🌿 Tog'AI ilovasini ochish": f"🌿 Web ilova: {base}",
+        "🌿 BioScan ilovasini ochish": f"🌿 Web ilova: {base}",
         "📷 Skaner": "📸 O'simlik yoki jonivor rasmini yuboring — AI 2 soniyada aniqlaydi.",
         "🤖 AI yordam": "Savolingizni yozing — AI javob beradi. Yoki rasm yuboring 📷",
     }
@@ -305,7 +305,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         from togai.integrations import groq_chat
         system = (
-            "Sen Tog'AI yordamchisisan — Markaziy Osiyo flora/faunasi bo'yicha ekspert biologist. "
+            "Sen BioScan yordamchisisan — Markaziy Osiyo flora/faunasi bo'yicha ekspert biologist. "
             "O'zbek tilida qisqa (3-5 jumla), aniq, amaliy javob ber. "
             "Xavfli mavzularda ehtiyot choralarini ko'rsat. "
             "Agar bilmasang 'Ma'lumot yetarli emas' deb yoz — taxmin qilma."
@@ -338,7 +338,7 @@ def _try_enrich(name: str) -> str | None:
     try:
         r = requests.get(
             f"https://uz.wikipedia.org/api/rest_v1/page/summary/{title_uz}",
-            headers={"User-Agent": "TogAI-Bot/1.0"},
+            headers={"User-Agent": "BioScan-Bot/1.0"},
             timeout=8,
         )
         if r.ok:
@@ -355,7 +355,7 @@ def _try_enrich(name: str) -> str | None:
         r = requests.get(
             "https://api.inaturalist.org/v1/taxa",
             params={"q": latin or common, "per_page": 1, "is_active": "true"},
-            headers={"User-Agent": "TogAI-Bot/1.0"},
+            headers={"User-Agent": "BioScan-Bot/1.0"},
             timeout=6,
         )
         if r.ok:
@@ -377,7 +377,7 @@ def _try_enrich(name: str) -> str | None:
                 f"'{common}' ({latin or ''}) — Markaziy Osiyo tabiat ekspertida "
                 f"bu haqda 2-3 jumlada o'zbek tilida ma'lumot bering. "
                 f"Agar bilmasangiz 'Ma'lumot yetarli emas' deb yozing.",
-                system="Sen Tog'AI yordamchisisan — biologiya eksperti. O'zbek tilida, qisqa va aniq.",
+                system="Sen BioScan yordamchisisan — biologiya eksperti. O'zbek tilida, qisqa va aniq.",
             )
         except Exception:
             pass

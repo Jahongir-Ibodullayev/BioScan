@@ -28,8 +28,8 @@ from bot import handlers
 async def otp_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """OTP bot uchun maxsus salomlash."""
     await update.message.reply_text(
-        "🔐 <b>Tog'AI OTP boti</b>\n\n"
-        "Bu bot orqali Tog'AI veb-ilovasiga (yoki ilovaga) kirayotganingizda "
+        "🔐 <b>BioScan OTP boti</b>\n\n"
+        "Bu bot orqali BioScan veb-ilovasiga (yoki ilovaga) kirayotganingizda "
         "tasdiqlash kodlari shu yerga keladi.\n\n"
         "▶ <b>Boshlash uchun</b>: /login bosing va telefon raqamingizni ulashing.",
         parse_mode=ParseMode.HTML,
@@ -37,7 +37,7 @@ async def otp_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 class Command(BaseCommand):
-    help = "Tog'AI OTP botini ishga tushirish (kodlar yuborish uchun alohida)"
+    help = "BioScan OTP botini ishga tushirish (kodlar yuborish uchun alohida)"
 
     def handle(self, *args, **opts):
         token = config("TELEGRAM_OTP_BOT_TOKEN", default=None)
@@ -73,6 +73,6 @@ class Command(BaseCommand):
         app.add_error_handler(handlers.on_error)
 
         self.stdout.write(self.style.SUCCESS(
-            "🔐 Tog'AI OTP bot ishga tushdi — polling..."
+            "🔐 BioScan OTP bot ishga tushdi — polling..."
         ))
         app.run_polling(allowed_updates=["message", "contact"])

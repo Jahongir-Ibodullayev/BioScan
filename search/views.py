@@ -24,7 +24,7 @@ INAT = "https://api.inaturalist.org/v1"
 GBIF = "https://api.gbif.org/v1"
 WIKI_UZ = "https://uz.wikipedia.org/api/rest_v1"
 WIKI_EN = "https://en.wikipedia.org/api/rest_v1"
-UA = "TogAI/1.0 (https://togai.uz; info@togai.uz)"
+UA = "BioScan/1.0 (https://togai.uz; info@togai.uz)"
 TIMEOUT = 12
 
 # GBIF Kingdom key'lari (taxonKey)
@@ -211,7 +211,7 @@ def taxa_search(request):
                     "wikipedia_url": s.external_ref or None,
                     "thumb": s.image_url or (s.image.url if s.image else None),
                     "photo": s.image_url or (s.image.url if s.image else None),
-                    "attribution": "Tog'AI mahalliy bazasi",
+                    "attribution": "BioScan mahalliy bazasi",
                     "_source": "local",
                 }
                 for s in local
@@ -1169,7 +1169,7 @@ def enrich(request):
     context = "\n".join(context_lines)
 
     system = (
-        "Sen Tog'AI yordamchisisan — FAQAT biologiya/tabiat ekspertisan. "
+        "Sen BioScan yordamchisisan — FAQAT biologiya/tabiat ekspertisan. "
         "BIOLOGIK TURLAR haqida yozasan — o'simlik, hayvon, qush, baliq, hasharot, qo'ziqorin. "
         "Asosiy QOIDA: Quyida berilgan Wikipedia matnidan foydalan. "
         "Wikipedia'da yo'q narsani O'YLAB CHIQARMA. "

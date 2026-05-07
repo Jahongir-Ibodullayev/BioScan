@@ -1,4 +1,4 @@
-"""Tog'AI E-commerce models — Mahsulot, Kategoriya, Savat, Buyurtma.
+"""BioScan E-commerce models — Mahsulot, Kategoriya, Savat, Buyurtma.
 
 Arxitektura:
   Category (hierarchic) ← Product → ProductImage

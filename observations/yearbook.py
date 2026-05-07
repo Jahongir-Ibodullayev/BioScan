@@ -99,7 +99,7 @@ def _draw_cover(c: canvas.Canvas, user, year: int, total: int):
     # Footer
     c.setFillColor(ACCENT)
     c.setFont("Helvetica-Bold", 10)
-    c.drawString(40, 50, "Tog'AI")
+    c.drawString(40, 50, "BioScan")
     c.setFillColor(colors.HexColor("#94A3B8"))
     c.setFont("Helvetica", 9)
     c.drawString(40, 36, "Tabiat AI yordamchisi · togai.uz")
@@ -138,7 +138,7 @@ def render_yearbook(user, year: int, observations) -> bytes:
         leftMargin=18 * mm, rightMargin=18 * mm,
         topMargin=18 * mm, bottomMargin=18 * mm,
         title=f"Tabiat Kundaligim {year}",
-        author=getattr(user, "full_name", "Tog'AI"),
+        author=getattr(user, "full_name", "BioScan"),
     )
     styles = _styles()
     story = []
@@ -300,7 +300,7 @@ def render_yearbook(user, year: int, observations) -> bytes:
         c.setFillColor(INK3)
         c.setFont("Helvetica", 8)
         c.drawRightString(A4[0] - 18 * mm, 12 * mm,
-                           f"Tog'AI · Tabiat Kundaligim {year}")
+                           f"BioScan · Tabiat Kundaligim {year}")
         c.drawString(18 * mm, 12 * mm, str(_d.page))
 
     doc.build(story, onFirstPage=first_page, onLaterPages=later_pages)

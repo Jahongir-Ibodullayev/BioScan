@@ -10,9 +10,9 @@ from .models import Conversation, Message
 from .serializers import AskSerializer, ConversationSerializer, MessageSerializer
 
 def answer_for(text: str) -> str:
-    """Real AI javob — Groq LLM orqali, Tog'AI flora/fauna konteksti bilan."""
+    """Real AI javob — Groq LLM orqali, BioScan flora/fauna konteksti bilan."""
     system = (
-        "Sen Tog'AI yordamchisisan — Markaziy Osiyo (asosan O'zbekiston) tabiati, "
+        "Sen BioScan yordamchisisan — Markaziy Osiyo (asosan O'zbekiston) tabiati, "
         "o'simlik, jonivor, qush, hasharot, qoziqorin va xavfli holatlar bo'yicha ekspert. "
         "Javobni FAQAT o'zbek tilida, qisqa va aniq (2-4 jumla) ber. "
         "Bilmasang tan ol — yolg'on yozma, foydalanuvchi sog'lig'iga zarar bo'lishi mumkin. "
@@ -154,7 +154,7 @@ def ai_public(request):
         )
 
     system = (
-        "Sen Tog'AI yordamchisisan — Markaziy Osiyo flora/faunasi bo'yicha ekspert biologist. "
+        "Sen BioScan yordamchisisan — Markaziy Osiyo flora/faunasi bo'yicha ekspert biologist. "
         "O'zbek tilida, qisqa (3-5 jumla), aniq, amaliy javob ber. "
         "Xavfli mavzularda ehtiyot choralarini ham ko'rsat.\n\n"
         + UZ_FLORA_FAUNA

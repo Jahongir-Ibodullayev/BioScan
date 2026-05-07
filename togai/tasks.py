@@ -1,4 +1,4 @@
-"""Tog'AI Celery vazifalari (background jobs)."""
+"""BioScan Celery vazifalari (background jobs)."""
 from __future__ import annotations
 
 import logging

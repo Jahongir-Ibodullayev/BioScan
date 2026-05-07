@@ -1,4 +1,4 @@
-"""Tog'AI Outdoor Gear — chodir, arqon, sayohat anjomlari.
+"""BioScan Outdoor Gear — chodir, arqon, sayohat anjomlari.
 
 Har bir mahsulotning sotib olish havolasi Uzum Market'ga tushadi (qidiruv).
 Rasmlar — mavzu bo'yicha mos keluvchi Unsplash fotosuratlari.
@@ -237,9 +237,9 @@ class Command(BaseCommand):
         seller, _ = User.objects.get_or_create(
             phone="+998900000000",
             defaults={
-                "full_name": "Tog'AI Bozor",
+                "full_name": "BioScan Bozor",
                 "account_type": "seller",
-                "seller_name": "Tog'AI Outdoor",
+                "seller_name": "BioScan Outdoor",
                 "seller_verified": True,
                 "is_active": True,
             },

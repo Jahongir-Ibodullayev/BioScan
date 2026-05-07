@@ -1,4 +1,4 @@
-"""Tog'AI Cache-Control middleware — Vercel edge caching uchun.
+"""BioScan Cache-Control middleware — Vercel edge caching uchun.
 
 Anonim GET so'rovlarga `Cache-Control: public, s-maxage=N, stale-while-revalidate`
 qo'shadi. Vercel edge cache mahalliy regionda javobni saqlaydi —

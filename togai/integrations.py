@@ -31,7 +31,7 @@ def ai_provider() -> tuple[str, str, dict]:
             or_key,
             {
                 "HTTP-Referer": getattr(settings, "OPENROUTER_REFERER", "https://togai.uz"),
-                "X-Title": getattr(settings, "OPENROUTER_TITLE", "Tog'AI"),
+                "X-Title": getattr(settings, "OPENROUTER_TITLE", "BioScan"),
             },
         )
     return ("https://api.groq.com/openai/v1", getattr(settings, "GROQ_API_KEY", ""), {})
@@ -331,7 +331,7 @@ def groq_chat(
             json={
                 "model": model,
                 "messages": [
-                    {"role": "system", "content": system or "Sen Tog'AI yordamchisisan. O'zbek tilida, qisqa va aniq javob ber."},
+                    {"role": "system", "content": system or "Sen BioScan yordamchisisan. O'zbek tilida, qisqa va aniq javob ber."},
                     {"role": "user", "content": prompt},
                 ],
                 "max_tokens": max_tokens,
@@ -394,7 +394,7 @@ def send_sms(phone: str, text: str) -> bool:
 def ai_reply(prompt: str, context: str = "") -> str:
     """Suhbat javobi. API key yo'q bo'lsa — canned."""
     system = (
-        "Sen Tog'AI yordamchisiman. Markaziy Osiyo tabiati, o'simlik, jonivor, hasharot "
+        "Sen BioScan yordamchisiman. Markaziy Osiyo tabiati, o'simlik, jonivor, hasharot "
         "bo'yicha yordam berasan. Javobni qisqa, aniq, o'zbek tilida ber."
     )
 
@@ -470,7 +470,7 @@ def send_otp_via_telegram(telegram_id: int, code: str) -> bool:
         return False
 
     text = (
-        f"🔐 <b>Tog'AI tasdiqlash kodi</b>\n\n"
+        f"🔐 <b>BioScan tasdiqlash kodi</b>\n\n"
         f"<code>{code}</code>\n\n"
         f"Kod 2 daqiqa amal qiladi. Kodni hech kimga bermang."
     )

@@ -81,7 +81,7 @@ def _sync_identify(photo_bytes: bytes, mime: str) -> tuple[Species | None, float
             r = requests.get(
                 "https://api.inaturalist.org/v1/taxa",
                 params={"q": latin, "per_page": 1, "is_active": "true"},
-                headers={"User-Agent": "TogAI-Bot/1.0"},
+                headers={"User-Agent": "BioScan-Bot/1.0"},
                 timeout=6,
             )
             if r.ok:

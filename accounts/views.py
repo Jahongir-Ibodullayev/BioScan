@@ -32,7 +32,7 @@ class RequestOTPView(APIView):
         ser.is_valid(raise_exception=True)
         phone = ser.validated_data["phone"]
         otp = OTPCode.issue(phone)
-        if not send_sms(phone, f"Tog'AI tasdiqlash kodi: {otp.code}. Kod 2 daqiqa amal qiladi."):
+        if not send_sms(phone, f"BioScan tasdiqlash kodi: {otp.code}. Kod 2 daqiqa amal qiladi."):
             return Response(
                 {"detail": "SMS yuborilmadi. Keyinroq qayta urinib ko'ring."},
                 status=status.HTTP_502_BAD_GATEWAY,

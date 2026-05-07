@@ -18,7 +18,7 @@ from togai.core.exceptions import (
 
 log = logging.getLogger(__name__)
 
-DEFAULT_UA = "TogAI/1.0 (https://togai.uz; info@togai.uz)"
+DEFAULT_UA = "BioScan/1.0 (https://togai.uz; info@togai.uz)"
 DEFAULT_TIMEOUT = 12
 
 

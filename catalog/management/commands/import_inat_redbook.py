@@ -18,7 +18,7 @@ from catalog.models import Species
 
 INAT = "https://api.inaturalist.org/v1"
 PLACE_UZ = 7352
-UA = "TogAI/1.0 (https://togai.uz; info@togai.uz)"
+UA = "BioScan/1.0 (https://togai.uz; info@togai.uz)"
 
 ICONIC_TO_CAT = {
     "Plantae":         "giyoh",

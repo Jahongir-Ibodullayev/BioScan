@@ -1,4 +1,4 @@
-"""Inline keyboards for Tog'AI Telegram bot."""
+"""Inline keyboards for BioScan Telegram bot."""
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
 
 WEB_APP_URL = "https://startup-seven-pied.vercel.app"
@@ -8,7 +8,7 @@ def main_menu() -> ReplyKeyboardMarkup:
     """Main persistent menu — WebApp + Scanner + AI only."""
     return ReplyKeyboardMarkup(
         [
-            [KeyboardButton("🌿 Tog'AI ilovasini ochish", web_app=WebAppInfo(url=WEB_APP_URL))],
+            [KeyboardButton("🌿 BioScan ilovasini ochish", web_app=WebAppInfo(url=WEB_APP_URL))],
             [KeyboardButton("📷 Skaner"), KeyboardButton("🤖 AI yordam")],
         ],
         resize_keyboard=True,
@@ -44,7 +44,7 @@ def species_inline(slug: str, youtube_q: str, lat: float | None = None, lng: flo
         ],
         [
             InlineKeyboardButton("💾 Kolleksiyaga saqlash", callback_data=f"save:{slug}"),
-            InlineKeyboardButton("📤 Ulashish", switch_inline_query=f"Tog'AI: {youtube_q}"),
+            InlineKeyboardButton("📤 Ulashish", switch_inline_query=f"BioScan: {youtube_q}"),
         ],
     ]
     if lat is not None and lng is not None:
@@ -77,7 +77,7 @@ def back_to_card(slug: str) -> InlineKeyboardMarkup:
 def start_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton("🌿 Tog'AI ilovasini ochish", web_app=WebAppInfo(url=WEB_APP_URL))],
+            [InlineKeyboardButton("🌿 BioScan ilovasini ochish", web_app=WebAppInfo(url=WEB_APP_URL))],
             [InlineKeyboardButton("📷 Rasm yuboring", callback_data="hint:photo")],
             [InlineKeyboardButton("📚 Katalog ko'rish", callback_data="cmd:catalog")],
             [InlineKeyboardButton("🤖 AI yordamchi", callback_data="cmd:chat")],
