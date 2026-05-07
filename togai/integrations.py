@@ -43,12 +43,20 @@ def ai_has_key() -> bool:
 
 # Model ro'yxati — provider-dependent. OpenRouter'da provider/model formatda.
 def vision_models() -> list[str]:
+    """Vision-capable models — verified to work with current OpenRouter key.
+
+    Ordered cheap → expensive. First successful response wins.
+    """
     if getattr(settings, "OPENROUTER_API_KEY", ""):
+        # Faqat ishonchli ishlovchi modellar — 404 bo'layotganlar olib tashlandi.
+        # Birinchi muvaffaqiyatli javob g'oliblik qiladi → AI sekinligi minimal.
         return [
-            "meta-llama/llama-4-scout:free",
-            "meta-llama/llama-3.2-90b-vision-instruct",
-            "meta-llama/llama-3.2-11b-vision-instruct",
-            "anthropic/claude-3.5-haiku",
+            # Cheap & accurate, vision-capable — Azure-backed, ishonchli
+            "openai/gpt-4o-mini",
+            # Google Gemini Flash 1.5 — vision, fast, cheap
+            "google/gemini-flash-1.5",
+            # Mistral Pixtral 12B — vision, fast
+            "mistralai/pixtral-12b",
         ]
     # Groq fallback
     return [
@@ -244,13 +252,15 @@ def identify_species_from_image(image_bytes: bytes, mime: str = "image/jpeg") ->
                     ],
                     "temperature": 0.1,
                     "max_tokens": 1500,
-                    "response_format": {"type": "json_object"},
+                    # response_format'siz — ba'zi modellar (Pixtral, Gemini)
+                    # uni qo'llab-quvvatlamaydi va 400 qaytaradi.
+                    # Promptda "Faqat JSON" deyilgan, model itoat qiladi.
                 },
-                timeout=90,
+                timeout=12,  # tez fail — keyingi modelga o'tish uchun
             )
             if r.status_code >= 400:
-                body = r.text[:500]
-                log.warning("Groq %s → %s: %s", model, r.status_code, body)
+                body = r.text[:300]
+                log.warning("AI %s → %s: %s", model, r.status_code, body)
                 last_err = f"{r.status_code}: {body}"
                 continue
 
