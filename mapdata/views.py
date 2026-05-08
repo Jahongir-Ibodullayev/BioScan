@@ -1,8 +1,52 @@
+from django.conf import settings
 from django_filters import rest_framework as filters
 from rest_framework import permissions, viewsets
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
 
 from .models import MapMarker
 from .serializers import MapMarkerSerializer
+
+
+# MBTiles offline xarita paketlari (CDN/R2 URL'lar — bo'sh holatda yo'q)
+# Real fayllarni yuklash kerak: tilemaker yoki mbutil bilan tayyorlanadi.
+MBTILES_URLS = {
+    "tashkent":      "",  # https://cdn.bioscan.uz/mbtiles/tashkent.mbtiles
+    "samarqand":     "",
+    "buxoro":        "",
+    "fargona":       "",
+    "andijon":       "",
+    "namangan":      "",
+    "qashqadaryo":   "",
+    "surxondaryo":   "",
+    "navoiy":        "",
+    "xorazm":        "",
+    "qoraqalpogiston": "",
+    "jizzax":        "",
+    "sirdaryo":      "",
+}
+
+
+@api_view(["GET"])
+@permission_classes([permissions.AllowAny])
+def mbtiles_url(request, slug: str):
+    """GET /api/map/regions/<slug>/mbtiles_url/
+
+    Offline xarita paketi havolasini qaytaradi (Cloudflare R2 yoki S3'da).
+    Hozircha CDN'ga fayllar yuklanmagan — bo'sh URL bilan 200 qaytariladi.
+    """
+    url = MBTILES_URLS.get(slug, "")
+    return Response({
+        "region": slug,
+        "url": url or None,
+        "size_mb": 18 if url else 0,
+        "available": bool(url),
+        "message": (
+            "Offline xarita paketi tayyor — yuklab oling"
+            if url else
+            "Bu viloyat uchun offline xarita hali tayyor emas"
+        ),
+    })
 
 
 class MarkerFilter(filters.FilterSet):

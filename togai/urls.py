@@ -24,6 +24,8 @@ api_patterns = [
     path("shop/", include("shop.urls")),
     path("ads/", include("ads.urls")),
     path("crops/", include("crops.urls")),
+    # Admin broadcast (FCM push to all users)
+    path("admin/notifications/broadcast/", __import__("accounts.broadcast", fromlist=["admin_broadcast"]).admin_broadcast, name="admin-broadcast"),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
     path("docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="docs"),
 ]

@@ -17,3 +17,8 @@ orjson==3.10.12
 requests==2.32.3
 python-telegram-bot==21.7
 sentry-sdk==2.58.0
+
+# TZ kengaytmalari (Crop Advisor + FCM + Celery Beat)
+httpx==0.27.2
+firebase-admin==6.5.0
+django-celery-beat==2.7.0

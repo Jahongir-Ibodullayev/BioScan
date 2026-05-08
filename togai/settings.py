@@ -73,7 +73,14 @@ INSTALLED_APPS = [
     "shop",
     "ads",
     "crops",
+    "django_celery_beat",
 ]
+
+# FCM (Firebase Cloud Messaging) — push xabarlar uchun
+FCM_CREDENTIALS_PATH = config("FCM_CREDENTIALS_PATH", default="")
+
+# Open-Meteo API — GPS prognoz
+OPEN_METEO_BASE = config("OPEN_METEO_BASE", default="https://api.open-meteo.com/v1")
 
 MIDDLEWARE = [
     "django.middleware.gzip.GZipMiddleware",

@@ -40,3 +40,29 @@ def warm_cache():
     top = list(Species.objects.all()[:50].values("id", "slug", "name", "latin"))
     cache.set("togai:hot:species:top50", top, 600)
     return {"warmed": len(top)}
+
+
+@shared_task
+def send_weekly_tip():
+    """Har juma 18:00 da — barcha foydalanuvchilarga haftalik tabiat maslahati."""
+    import logging
+    log = logging.getLogger(__name__)
+
+    tips = [
+        ("🌿 Hafta maslahati", "Tabiatga chiqsangiz, tikanli o'simliklarga ehtiyot bo'ling — ba'zi turlar zaharli."),
+        ("📕 Qizil kitob", "Bu hafta — Greig lolasi gullash davri. Uzmang, suratga oling!"),
+        ("🦋 Hasharot", "Asalari uchun foydali o'simliklar: yantoq, beda, yalpiz — ekib boqing."),
+        ("🐍 Xavfsizlik", "Tog'ga chiqsangiz, gyurzaga ehtiyot bo'ling. Toshlar ostida yotadi."),
+        ("🌳 Daraxt eking", "Bahor — daraxt ekish vaqti. Bog'ingizga 1 ta archa qo'shing."),
+    ]
+    import random
+    title, body = random.choice(tips)
+
+    from togai.services.fcm import broadcast
+    try:
+        sent = broadcast(title, body, segment="active_7d")
+        log.info("weekly_tip yuborildi: %s ta", sent)
+        return sent
+    except Exception as e:
+        log.warning("weekly_tip failed: %s", e)
+        return 0

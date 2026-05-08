@@ -395,5 +395,405 @@
       "icon_name": "cherry",
       "updated_at": "2026-05-08T12:00:00+05:00"
     }
+  },
+  {
+    "model": "crops.crop",
+    "pk": 11,
+    "fields": {
+      "slug": "sarimsoq",
+      "name_uz": "Sarimsoq",
+      "name_ru": "Чеснок",
+      "name_lat": "Allium sativum",
+      "category": "sabzavot",
+      "min_soil_temp_c": 4,
+      "optimal_soil_temp_c": 12,
+      "frost_sensitive": false,
+      "plant_window_start_month": 9,
+      "plant_window_end_month": 11,
+      "days_to_harvest_min": 200,
+      "days_to_harvest_max": 240,
+      "water_freq_days": 7,
+      "drought_tolerant": true,
+      "flood_tolerant": false,
+      "soil_type": "yumshoq",
+      "ph_min": "6.0",
+      "ph_max": "7.5",
+      "sun_hours_min": 6,
+      "soil_prep_uz": "Kuzgi ekiladi. Quyoshli yer.",
+      "planting_method_uz": "Bo'lakli sarimsoq 5 sm chuqurlikka, 10 sm oraliqda.",
+      "care_tips_uz": "Hosil olishdan 3 hafta oldin sug'orishni to'xtating.",
+      "common_pests": "Sarimsoq pashshasi",
+      "common_varieties": [
+        {
+          "name": "Mahalliy",
+          "season": "winter",
+          "yield": "high"
+        }
+      ],
+      "image_url": "https://images.unsplash.com/photo-1540148426945-6cf22a6b2383?w=600",
+      "icon_name": "circle-dot",
+      "updated_at": "2026-05-08T12:00:00+05:00"
+    }
+  },
+  {
+    "model": "crops.crop",
+    "pk": 12,
+    "fields": {
+      "slug": "makka",
+      "name_uz": "Makka",
+      "name_ru": "Кукуруза",
+      "name_lat": "Zea mays",
+      "category": "don",
+      "min_soil_temp_c": 10,
+      "optimal_soil_temp_c": 18,
+      "frost_sensitive": true,
+      "plant_window_start_month": 4,
+      "plant_window_end_month": 6,
+      "days_to_harvest_min": 90,
+      "days_to_harvest_max": 130,
+      "water_freq_days": 5,
+      "drought_tolerant": false,
+      "flood_tolerant": false,
+      "soil_type": "qora tuproq",
+      "ph_min": "5.8",
+      "ph_max": "7.0",
+      "sun_hours_min": 8,
+      "soil_prep_uz": "Chuqur haydash. Azot va fosfor.",
+      "planting_method_uz": "Urug' 4 sm chuqurlikka, 30×60 sm.",
+      "care_tips_uz": "Doim sug'oring, ayniqsa gullash davrida.",
+      "common_pests": "Makka kuyasi",
+      "common_varieties": [
+        {
+          "name": "Sirdaryo 25",
+          "season": "mid",
+          "yield": "high"
+        }
+      ],
+      "image_url": "https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=600",
+      "icon_name": "wheat",
+      "updated_at": "2026-05-08T12:00:00+05:00"
+    }
+  },
+  {
+    "model": "crops.crop",
+    "pk": 13,
+    "fields": {
+      "slug": "kungaboqar",
+      "name_uz": "Kungaboqar",
+      "name_ru": "Подсолнух",
+      "name_lat": "Helianthus annuus",
+      "category": "don",
+      "min_soil_temp_c": 8,
+      "optimal_soil_temp_c": 16,
+      "frost_sensitive": true,
+      "plant_window_start_month": 4,
+      "plant_window_end_month": 5,
+      "days_to_harvest_min": 90,
+      "days_to_harvest_max": 130,
+      "water_freq_days": 7,
+      "drought_tolerant": true,
+      "flood_tolerant": false,
+      "soil_type": "qum-tuproq",
+      "ph_min": "6.0",
+      "ph_max": "7.5",
+      "sun_hours_min": 8,
+      "soil_prep_uz": "Quyoshli, shamol kam joy.",
+      "planting_method_uz": "Urug' 5 sm chuqurlikka, 50×70 sm.",
+      "care_tips_uz": "Yirik gulli — tayanch yo'q.",
+      "common_pests": "Kungaboqar kuyasi",
+      "common_varieties": [
+        {
+          "name": "Mahalliy",
+          "season": "mid",
+          "yield": "high"
+        }
+      ],
+      "image_url": "https://images.unsplash.com/photo-1466781783364-36c955e42a7f?w=600",
+      "icon_name": "flower-2",
+      "updated_at": "2026-05-08T12:00:00+05:00"
+    }
+  },
+  {
+    "model": "crops.crop",
+    "pk": 14,
+    "fields": {
+      "slug": "noxat",
+      "name_uz": "No'xat",
+      "name_ru": "Нут",
+      "name_lat": "Cicer arietinum",
+      "category": "don",
+      "min_soil_temp_c": 5,
+      "optimal_soil_temp_c": 15,
+      "frost_sensitive": false,
+      "plant_window_start_month": 3,
+      "plant_window_end_month": 4,
+      "days_to_harvest_min": 100,
+      "days_to_harvest_max": 130,
+      "water_freq_days": 10,
+      "drought_tolerant": true,
+      "flood_tolerant": false,
+      "soil_type": "loy",
+      "ph_min": "6.2",
+      "ph_max": "7.5",
+      "sun_hours_min": 7,
+      "soil_prep_uz": "Kuzgi haydash. Azot kam — o'zi havodan oladi.",
+      "planting_method_uz": "Urug' 4 sm chuqurlikka, 30 sm oraliqda.",
+      "care_tips_uz": "Ko'p sug'orish kerak emas.",
+      "common_pests": "No'xat bitlari",
+      "common_varieties": [
+        {
+          "name": "Mahalliy oq",
+          "season": "early",
+          "yield": "mid"
+        }
+      ],
+      "image_url": "https://images.unsplash.com/photo-1611078489935-0c1cc7d4e2b3?w=600",
+      "icon_name": "sprout",
+      "updated_at": "2026-05-08T12:00:00+05:00"
+    }
+  },
+  {
+    "model": "crops.crop",
+    "pk": 15,
+    "fields": {
+      "slug": "mosh",
+      "name_uz": "Mosh",
+      "name_ru": "Маш",
+      "name_lat": "Vigna radiata",
+      "category": "don",
+      "min_soil_temp_c": 12,
+      "optimal_soil_temp_c": 20,
+      "frost_sensitive": true,
+      "plant_window_start_month": 5,
+      "plant_window_end_month": 6,
+      "days_to_harvest_min": 70,
+      "days_to_harvest_max": 90,
+      "water_freq_days": 6,
+      "drought_tolerant": true,
+      "flood_tolerant": false,
+      "soil_type": "qum-tuproq",
+      "ph_min": "6.0",
+      "ph_max": "7.0",
+      "sun_hours_min": 7,
+      "soil_prep_uz": "Issiq, yumshoq tuproq.",
+      "planting_method_uz": "Urug' 3 sm chuqurlikka, 25 sm oraliqda.",
+      "care_tips_uz": "Yumshoq, gullash paytida sug'oring.",
+      "common_pests": "Mosh kuyasi",
+      "common_varieties": [
+        {
+          "name": "Marvarid",
+          "season": "mid",
+          "yield": "high"
+        }
+      ],
+      "image_url": "https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=600",
+      "icon_name": "sprout",
+      "updated_at": "2026-05-08T12:00:00+05:00"
+    }
+  },
+  {
+    "model": "crops.crop",
+    "pk": 16,
+    "fields": {
+      "slug": "olma",
+      "name_uz": "Olma",
+      "name_ru": "Яблоко",
+      "name_lat": "Malus domestica",
+      "category": "meva",
+      "min_soil_temp_c": -20,
+      "optimal_soil_temp_c": 15,
+      "frost_sensitive": false,
+      "plant_window_start_month": 3,
+      "plant_window_end_month": 4,
+      "days_to_harvest_min": 1095,
+      "days_to_harvest_max": 1825,
+      "water_freq_days": 10,
+      "drought_tolerant": false,
+      "flood_tolerant": false,
+      "soil_type": "loy",
+      "ph_min": "6.0",
+      "ph_max": "7.0",
+      "sun_hours_min": 8,
+      "soil_prep_uz": "Bog' uchun chuqur o'ra. Drenaj.",
+      "planting_method_uz": "Ko'chat 4 m oraliqda, ildiz bo'yni tuproqda.",
+      "care_tips_uz": "Har yili kuzda kesish va o'g'itlash.",
+      "common_pests": "Olma qurti",
+      "common_varieties": [
+        {
+          "name": "Golden Delicious",
+          "season": "late",
+          "yield": "high"
+        },
+        {
+          "name": "Renet Simirenko",
+          "season": "winter",
+          "yield": "high"
+        }
+      ],
+      "image_url": "https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?w=600",
+      "icon_name": "apple",
+      "updated_at": "2026-05-08T12:00:00+05:00"
+    }
+  },
+  {
+    "model": "crops.crop",
+    "pk": 17,
+    "fields": {
+      "slug": "uzum",
+      "name_uz": "Uzum",
+      "name_ru": "Виноград",
+      "name_lat": "Vitis vinifera",
+      "category": "meva",
+      "min_soil_temp_c": -15,
+      "optimal_soil_temp_c": 20,
+      "frost_sensitive": false,
+      "plant_window_start_month": 3,
+      "plant_window_end_month": 4,
+      "days_to_harvest_min": 730,
+      "days_to_harvest_max": 1095,
+      "water_freq_days": 10,
+      "drought_tolerant": true,
+      "flood_tolerant": false,
+      "soil_type": "qum-tuproq",
+      "ph_min": "6.0",
+      "ph_max": "7.5",
+      "sun_hours_min": 9,
+      "soil_prep_uz": "Quyoshli yer, tayanch tayyorlash.",
+      "planting_method_uz": "Cherenok 30 sm chuqurlikka, 1.5 m oraliqda.",
+      "care_tips_uz": "Har yili kuzda kesish.",
+      "common_pests": "Mildyu, oidiy",
+      "common_varieties": [
+        {
+          "name": "Husayni",
+          "season": "late",
+          "yield": "high"
+        },
+        {
+          "name": "Damski palchik",
+          "season": "mid",
+          "yield": "high"
+        }
+      ],
+      "image_url": "https://images.unsplash.com/photo-1599819811279-d5ad9cccf838?w=600",
+      "icon_name": "grape",
+      "updated_at": "2026-05-08T12:00:00+05:00"
+    }
+  },
+  {
+    "model": "crops.crop",
+    "pk": 18,
+    "fields": {
+      "slug": "anor",
+      "name_uz": "Anor",
+      "name_ru": "Гранат",
+      "name_lat": "Punica granatum",
+      "category": "meva",
+      "min_soil_temp_c": -10,
+      "optimal_soil_temp_c": 22,
+      "frost_sensitive": false,
+      "plant_window_start_month": 3,
+      "plant_window_end_month": 5,
+      "days_to_harvest_min": 1095,
+      "days_to_harvest_max": 1460,
+      "water_freq_days": 14,
+      "drought_tolerant": true,
+      "flood_tolerant": false,
+      "soil_type": "qum-tuproq",
+      "ph_min": "6.5",
+      "ph_max": "7.5",
+      "sun_hours_min": 9,
+      "soil_prep_uz": "Issiq janubiy yon. Drenajli tuproq.",
+      "planting_method_uz": "Ko'chat 4 m oraliqda.",
+      "care_tips_uz": "Quruqlikka chidamli — kam sug'orish.",
+      "common_pests": "Anor kuyasi",
+      "common_varieties": [
+        {
+          "name": "Buxoro",
+          "season": "late",
+          "yield": "high"
+        }
+      ],
+      "image_url": "https://images.unsplash.com/photo-1541344999736-83eca272f6fc?w=600",
+      "icon_name": "circle",
+      "updated_at": "2026-05-08T12:00:00+05:00"
+    }
+  },
+  {
+    "model": "crops.crop",
+    "pk": 19,
+    "fields": {
+      "slug": "sholi",
+      "name_uz": "Sholi",
+      "name_ru": "Рис",
+      "name_lat": "Oryza sativa",
+      "category": "don",
+      "min_soil_temp_c": 12,
+      "optimal_soil_temp_c": 25,
+      "frost_sensitive": true,
+      "plant_window_start_month": 5,
+      "plant_window_end_month": 6,
+      "days_to_harvest_min": 100,
+      "days_to_harvest_max": 130,
+      "water_freq_days": 1,
+      "drought_tolerant": false,
+      "flood_tolerant": true,
+      "soil_type": "loy",
+      "ph_min": "5.5",
+      "ph_max": "6.5",
+      "sun_hours_min": 8,
+      "soil_prep_uz": "Suvga to'la maydon. Loyli tuproq.",
+      "planting_method_uz": "Ko'chat usuli, 20 sm oraliqda.",
+      "care_tips_uz": "Har doim suv ostida tutib turing.",
+      "common_pests": "Sholi kuyasi",
+      "common_varieties": [
+        {
+          "name": "Lazer",
+          "season": "late",
+          "yield": "high"
+        }
+      ],
+      "image_url": "https://images.unsplash.com/photo-1568347877321-f8935c7dc5a8?w=600",
+      "icon_name": "wheat",
+      "updated_at": "2026-05-08T12:00:00+05:00"
+    }
+  },
+  {
+    "model": "crops.crop",
+    "pk": 20,
+    "fields": {
+      "slug": "paxta",
+      "name_uz": "Paxta",
+      "name_ru": "Хлопок",
+      "name_lat": "Gossypium hirsutum",
+      "category": "sanoat",
+      "min_soil_temp_c": 16,
+      "optimal_soil_temp_c": 25,
+      "frost_sensitive": true,
+      "plant_window_start_month": 4,
+      "plant_window_end_month": 5,
+      "days_to_harvest_min": 150,
+      "days_to_harvest_max": 200,
+      "water_freq_days": 7,
+      "drought_tolerant": false,
+      "flood_tolerant": false,
+      "soil_type": "loy",
+      "ph_min": "6.5",
+      "ph_max": "8.0",
+      "sun_hours_min": 9,
+      "soil_prep_uz": "Chuqur haydash, yostiqcha.",
+      "planting_method_uz": "Urug' 4 sm chuqurlikka, 60 sm oraliqda.",
+      "care_tips_uz": "Doim sug'oring, ayniqsa gullash paytida.",
+      "common_pests": "Paxta kuyasi, bitlar",
+      "common_varieties": [
+        {
+          "name": "Bukhara-102",
+          "season": "mid",
+          "yield": "high"
+        }
+      ],
+      "image_url": "https://images.unsplash.com/photo-1601247379847-5dca5d92e9ab?w=600",
+      "icon_name": "leaf",
+      "updated_at": "2026-05-08T12:00:00+05:00"
+    }
   }
 ]
