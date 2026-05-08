@@ -11,6 +11,9 @@ Pillow==11.0.0
 python-decouple==3.8
 django-storages==1.14.4
 gunicorn==23.0.0
+gevent==24.11.1
+redis==5.2.1
+orjson==3.10.12
 requests==2.32.3
 python-telegram-bot==21.7
 sentry-sdk==2.58.0

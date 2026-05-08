@@ -25,9 +25,9 @@ class IUCNStatus(models.TextChoices):
 
 class Species(models.Model):
     slug = models.SlugField(max_length=140, unique=True)
-    name = models.CharField(max_length=140)
+    name = models.CharField(max_length=140, db_index=True)
     latin = models.CharField(max_length=160, blank=True)
-    category = models.CharField(max_length=16, choices=Category.choices)
+    category = models.CharField(max_length=16, choices=Category.choices, db_index=True)
     icon_name = models.CharField(
         max_length=40,
         default="leaf",
@@ -49,9 +49,9 @@ class Species(models.Model):
     image = models.ImageField(upload_to="species/", null=True, blank=True)
     image_url = models.URLField(blank=True, max_length=600, help_text="Optional external image (Unsplash, Wikipedia)")
 
-    red_book = models.BooleanField(default=False, help_text="Mahalliy Qizil kitobda")
+    red_book = models.BooleanField(default=False, db_index=True, help_text="Mahalliy Qizil kitobda")
     iucn_status = models.CharField(
-        max_length=4, choices=IUCNStatus.choices, default=IUCNStatus.NE
+        max_length=4, choices=IUCNStatus.choices, default=IUCNStatus.NE, db_index=True,
     )
 
     regions = models.CharField(
@@ -65,16 +65,16 @@ class Species(models.Model):
 
     # ====== YANGI filter field'lar (V3) ======
     halal_status = models.CharField(
-        max_length=10, default="unknown",
+        max_length=10, default="unknown", db_index=True,
         help_text="halal | makruh | haram | unknown",
     )
-    is_medicinal = models.BooleanField(default=False, help_text="Dorivor giyohmi?")
-    is_honey_plant = models.BooleanField(default=False, help_text="Asalari uchun yaxshi?")
+    is_medicinal = models.BooleanField(default=False, db_index=True, help_text="Dorivor giyohmi?")
+    is_honey_plant = models.BooleanField(default=False, db_index=True, help_text="Asalari uchun yaxshi?")
     livestock_danger = models.CharField(
-        max_length=10, default="safe",
+        max_length=10, default="safe", db_index=True,
         help_text="safe | toxic | deadly",
     )
-    is_edible = models.BooleanField(default=False)
+    is_edible = models.BooleanField(default=False, db_index=True)
     bloom_months = models.CharField(
         max_length=50, blank=True,
         help_text="Gulash oylari (vergul bilan): 4,5,6",
@@ -93,6 +93,10 @@ class Species(models.Model):
         verbose_name = "Tur"
         verbose_name_plural = "Turlar"
         ordering = ("name",)
+        indexes = [
+            models.Index(fields=["category", "red_book"], name="sp_cat_redbook_idx"),
+            models.Index(fields=["category", "is_medicinal"], name="sp_cat_med_idx"),
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.latin})" if self.latin else self.name
