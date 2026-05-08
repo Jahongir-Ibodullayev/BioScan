@@ -1,0 +1,389 @@
+[
+  {
+    "model": "crops.crop",
+    "pk": 1,
+    "fields": {
+      "slug": "kartoshka",
+      "name_uz": "Kartoshka",
+      "name_ru": "Картошка",
+      "name_lat": "Solanum tuberosum",
+      "category": "sabzavot",
+      "min_soil_temp_c": 7,
+      "optimal_soil_temp_c": 12,
+      "frost_sensitive": true,
+      "plant_window_start_month": 3,
+      "plant_window_end_month": 5,
+      "days_to_harvest_min": 80,
+      "days_to_harvest_max": 120,
+      "water_freq_days": 5,
+      "drought_tolerant": false,
+      "flood_tolerant": false,
+      "soil_type": "qum-tuproq",
+      "ph_min": "5.5",
+      "ph_max": "7.0",
+      "sun_hours_min": 6,
+      "soil_prep_uz": "Tuproqni 25 sm chuqurlikda yumshating va organik o'g'it qo'shing.",
+      "planting_method_uz": "Tugunaklarni 10 sm chuqurlikka, qatorlar oraligi 60 sm.",
+      "care_tips_uz": "3-4 hafta o'tgach yer ostidan tuproq yiq'ish.",
+      "common_pests": "Kolorado qo'ng'izi, simli qurt",
+      "common_varieties": [
+        {
+          "name": "Nevskiy",
+          "season": "early",
+          "yield": "high"
+        },
+        {
+          "name": "Pikasso",
+          "season": "mid",
+          "yield": "high"
+        }
+      ],
+      "image_url": "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=600",
+      "icon_name": "sprout"
+    }
+  },
+  {
+    "model": "crops.crop",
+    "pk": 2,
+    "fields": {
+      "slug": "pomidor",
+      "name_uz": "Pomidor",
+      "name_ru": "Помидор",
+      "name_lat": "Solanum lycopersicum",
+      "category": "sabzavot",
+      "min_soil_temp_c": 13,
+      "optimal_soil_temp_c": 18,
+      "frost_sensitive": true,
+      "plant_window_start_month": 4,
+      "plant_window_end_month": 6,
+      "days_to_harvest_min": 65,
+      "days_to_harvest_max": 90,
+      "water_freq_days": 4,
+      "drought_tolerant": false,
+      "soil_type": "qora tuproq",
+      "ph_min": "6.0",
+      "ph_max": "7.0",
+      "sun_hours_min": 8,
+      "soil_prep_uz": "Issiq joy tanlang. Kompost 5 kg/m2 qo'shing.",
+      "planting_method_uz": "Ko'chat ko'rinishida 50 sm oraliqda eking.",
+      "care_tips_uz": "Tayanch tayoq qo'ying, pastki barglarini olib tashlang.",
+      "common_pests": "Oq pashsha, fitoftora",
+      "common_varieties": [
+        {
+          "name": "Volgograd",
+          "season": "mid",
+          "yield": "high"
+        }
+      ],
+      "image_url": "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=600",
+      "icon_name": "apple"
+    }
+  },
+  {
+    "model": "crops.crop",
+    "pk": 3,
+    "fields": {
+      "slug": "bodring",
+      "name_uz": "Bodring",
+      "name_ru": "Огурец",
+      "name_lat": "Cucumis sativus",
+      "category": "sabzavot",
+      "min_soil_temp_c": 15,
+      "optimal_soil_temp_c": 22,
+      "frost_sensitive": true,
+      "plant_window_start_month": 4,
+      "plant_window_end_month": 6,
+      "days_to_harvest_min": 50,
+      "days_to_harvest_max": 70,
+      "water_freq_days": 3,
+      "drought_tolerant": false,
+      "flood_tolerant": false,
+      "soil_type": "qum-tuproq",
+      "ph_min": "6.0",
+      "ph_max": "7.5",
+      "sun_hours_min": 7,
+      "soil_prep_uz": "Yumshoq, organik tuproq. Issiq joy.",
+      "planting_method_uz": "Urug'larni to'g'ridan-to'g'ri 2 sm chuqurlikka, 30 sm oraliqda.",
+      "care_tips_uz": "Mulchlash bilan namlikni saqlang. Vertikal o'sishga tayanch.",
+      "common_pests": "O'rgimchak, kuyish kasalligi",
+      "common_varieties": [
+        {
+          "name": "Universal",
+          "season": "early",
+          "yield": "high"
+        }
+      ],
+      "image_url": "https://images.unsplash.com/photo-1604977042946-1eecc30f269e?w=600",
+      "icon_name": "leaf"
+    }
+  },
+  {
+    "model": "crops.crop",
+    "pk": 4,
+    "fields": {
+      "slug": "sabzi",
+      "name_uz": "Sabzi",
+      "name_ru": "Морковь",
+      "name_lat": "Daucus carota",
+      "category": "sabzavot",
+      "min_soil_temp_c": 5,
+      "optimal_soil_temp_c": 16,
+      "frost_sensitive": false,
+      "plant_window_start_month": 3,
+      "plant_window_end_month": 7,
+      "days_to_harvest_min": 70,
+      "days_to_harvest_max": 100,
+      "water_freq_days": 6,
+      "drought_tolerant": true,
+      "soil_type": "yumshoq qum",
+      "ph_min": "6.0",
+      "ph_max": "7.0",
+      "sun_hours_min": 6,
+      "soil_prep_uz": "Tosh va loy bo'lmagan, yumshoq qatlam.",
+      "planting_method_uz": "Urug'lar 1 sm chuqurlikka, qatorlar 25 sm oralig'ida.",
+      "care_tips_uz": "5 sm bo'lganda yagonalash — har 5 sm da bitta o'simlik.",
+      "common_pests": "Sabzi pashshasi",
+      "common_varieties": [
+        {
+          "name": "Mshak",
+          "season": "mid",
+          "yield": "high"
+        }
+      ],
+      "image_url": "https://images.unsplash.com/photo-1590868309235-ea34bed7bd7f?w=600",
+      "icon_name": "carrot"
+    }
+  },
+  {
+    "model": "crops.crop",
+    "pk": 5,
+    "fields": {
+      "slug": "piyoz",
+      "name_uz": "Piyoz",
+      "name_ru": "Лук",
+      "name_lat": "Allium cepa",
+      "category": "sabzavot",
+      "min_soil_temp_c": 4,
+      "optimal_soil_temp_c": 13,
+      "frost_sensitive": false,
+      "plant_window_start_month": 3,
+      "plant_window_end_month": 4,
+      "days_to_harvest_min": 90,
+      "days_to_harvest_max": 130,
+      "water_freq_days": 7,
+      "drought_tolerant": true,
+      "soil_type": "qum-tuproq",
+      "ph_min": "6.0",
+      "ph_max": "7.5",
+      "sun_hours_min": 6,
+      "soil_prep_uz": "Quruq, quyoshli joy. Yangi go'ng tashlamang.",
+      "planting_method_uz": "Bosh piyozcha 3 sm chuqurlikka, 10 sm oraliqda.",
+      "care_tips_uz": "Hosildan 3 hafta oldin sug'orishni to'xtating.",
+      "common_pests": "Piyoz pashshasi",
+      "common_varieties": [
+        {
+          "name": "Sturon",
+          "season": "mid",
+          "yield": "high"
+        }
+      ],
+      "image_url": "https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?w=600",
+      "icon_name": "circle-dot"
+    }
+  },
+  {
+    "model": "crops.crop",
+    "pk": 6,
+    "fields": {
+      "slug": "qovun",
+      "name_uz": "Qovun",
+      "name_ru": "Дыня",
+      "name_lat": "Cucumis melo",
+      "category": "meva",
+      "min_soil_temp_c": 18,
+      "optimal_soil_temp_c": 25,
+      "frost_sensitive": true,
+      "plant_window_start_month": 5,
+      "plant_window_end_month": 6,
+      "days_to_harvest_min": 90,
+      "days_to_harvest_max": 120,
+      "water_freq_days": 5,
+      "drought_tolerant": true,
+      "soil_type": "qumli",
+      "ph_min": "6.0",
+      "ph_max": "7.5",
+      "sun_hours_min": 8,
+      "soil_prep_uz": "Issiq, qumli yer. Past joylarda emas.",
+      "planting_method_uz": "Urug' 3 sm chuqurlikka, 1.5 m oraliqda.",
+      "care_tips_uz": "Hosil pishganda sug'orishni kamaytiring (shirinroq bo'ladi).",
+      "common_pests": "Bahor o'rgimchagi",
+      "common_varieties": [
+        {
+          "name": "Mirzachul",
+          "season": "late",
+          "yield": "high"
+        },
+        {
+          "name": "Handalak",
+          "season": "early",
+          "yield": "high"
+        }
+      ],
+      "image_url": "https://images.unsplash.com/photo-1571575173700-afb9492e6a50?w=600",
+      "icon_name": "apple"
+    }
+  },
+  {
+    "model": "crops.crop",
+    "pk": 7,
+    "fields": {
+      "slug": "tarvuz",
+      "name_uz": "Tarvuz",
+      "name_ru": "Арбуз",
+      "name_lat": "Citrullus lanatus",
+      "category": "meva",
+      "min_soil_temp_c": 18,
+      "optimal_soil_temp_c": 25,
+      "frost_sensitive": true,
+      "plant_window_start_month": 5,
+      "plant_window_end_month": 6,
+      "days_to_harvest_min": 80,
+      "days_to_harvest_max": 110,
+      "water_freq_days": 4,
+      "drought_tolerant": true,
+      "soil_type": "qumli",
+      "ph_min": "6.0",
+      "ph_max": "7.0",
+      "sun_hours_min": 8,
+      "soil_prep_uz": "Sug'oriladigan, quyoshli yer.",
+      "planting_method_uz": "Urug' yoki ko'chat, 2 m oraliqda.",
+      "care_tips_uz": "Pishish chog'ida juda ko'p suv kerak emas.",
+      "common_pests": "Bitlar, fuzarioz",
+      "common_varieties": [
+        {
+          "name": "Buxoro 11",
+          "season": "late",
+          "yield": "high"
+        }
+      ],
+      "image_url": "https://images.unsplash.com/photo-1563114773-84221bd62daa?w=600",
+      "icon_name": "circle"
+    }
+  },
+  {
+    "model": "crops.crop",
+    "pk": 8,
+    "fields": {
+      "slug": "bugdoy",
+      "name_uz": "Bug'doy",
+      "name_ru": "Пшеница",
+      "name_lat": "Triticum aestivum",
+      "category": "don",
+      "min_soil_temp_c": 4,
+      "optimal_soil_temp_c": 12,
+      "frost_sensitive": false,
+      "plant_window_start_month": 10,
+      "plant_window_end_month": 11,
+      "days_to_harvest_min": 220,
+      "days_to_harvest_max": 260,
+      "water_freq_days": 14,
+      "drought_tolerant": true,
+      "soil_type": "loy-qum",
+      "ph_min": "6.0",
+      "ph_max": "7.5",
+      "sun_hours_min": 6,
+      "soil_prep_uz": "Kuzgi haydash. Mineral o'g'it.",
+      "planting_method_uz": "Sotuvchi yo'l-mashina bilan 4-5 sm chuqurlikka.",
+      "care_tips_uz": "Bahorda azot beriladi.",
+      "common_pests": "Sariq zang",
+      "common_varieties": [
+        {
+          "name": "Krasnodar",
+          "season": "winter",
+          "yield": "high"
+        }
+      ],
+      "image_url": "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=600",
+      "icon_name": "wheat"
+    }
+  },
+  {
+    "model": "crops.crop",
+    "pk": 9,
+    "fields": {
+      "slug": "loviya",
+      "name_uz": "Loviya",
+      "name_ru": "Фасоль",
+      "name_lat": "Phaseolus vulgaris",
+      "category": "don",
+      "min_soil_temp_c": 12,
+      "optimal_soil_temp_c": 18,
+      "frost_sensitive": true,
+      "plant_window_start_month": 4,
+      "plant_window_end_month": 6,
+      "days_to_harvest_min": 60,
+      "days_to_harvest_max": 90,
+      "water_freq_days": 5,
+      "drought_tolerant": false,
+      "soil_type": "qum-tuproq",
+      "ph_min": "6.0",
+      "ph_max": "7.0",
+      "sun_hours_min": 6,
+      "soil_prep_uz": "O'rtacha namlik. Azot kerak emas.",
+      "planting_method_uz": "Urug' 3 sm chuqurlikka, 30 sm oraliqda.",
+      "care_tips_uz": "Quruq paytda sug'oring. Tayanch o'rnating (jingalak nav).",
+      "common_pests": "Loviya bitlari",
+      "common_varieties": [
+        {
+          "name": "Sayyora",
+          "season": "mid",
+          "yield": "high"
+        }
+      ],
+      "image_url": "https://images.unsplash.com/photo-1611174340021-4ac3deb7e8c3?w=600",
+      "icon_name": "sprout"
+    }
+  },
+  {
+    "model": "crops.crop",
+    "pk": 10,
+    "fields": {
+      "slug": "qulupnay",
+      "name_uz": "Qulupnay",
+      "name_ru": "Клубника",
+      "name_lat": "Fragaria × ananassa",
+      "category": "meva",
+      "min_soil_temp_c": 6,
+      "optimal_soil_temp_c": 15,
+      "frost_sensitive": true,
+      "plant_window_start_month": 3,
+      "plant_window_end_month": 5,
+      "days_to_harvest_min": 60,
+      "days_to_harvest_max": 90,
+      "water_freq_days": 3,
+      "drought_tolerant": false,
+      "soil_type": "yumshoq, organik",
+      "ph_min": "5.5",
+      "ph_max": "6.5",
+      "sun_hours_min": 6,
+      "soil_prep_uz": "Organik o'g'it ko'p. Yumshoq drenajli yer.",
+      "planting_method_uz": "Ko'chat 30 sm oraliqda, qatorlar 50 sm.",
+      "care_tips_uz": "Mulch — somonga mevani qo'yib qo'yish kerak.",
+      "common_pests": "Slizen, kul kasalligi",
+      "common_varieties": [
+        {
+          "name": "Lord",
+          "season": "mid",
+          "yield": "high"
+        },
+        {
+          "name": "Festival",
+          "season": "late",
+          "yield": "high"
+        }
+      ],
+      "image_url": "https://images.unsplash.com/photo-1543528176-61b239494933?w=600",
+      "icon_name": "cherry"
+    }
+  }
+]

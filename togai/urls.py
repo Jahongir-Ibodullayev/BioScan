@@ -23,6 +23,7 @@ api_patterns = [
     path("search/", include("search.urls")),
     path("shop/", include("shop.urls")),
     path("ads/", include("ads.urls")),
+    path("crops/", include("crops.urls")),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
     path("docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="docs"),
 ]

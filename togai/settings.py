@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     "search",
     "shop",
     "ads",
+    "crops",
 ]
 
 MIDDLEWARE = [
