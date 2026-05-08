@@ -68,11 +68,44 @@ def watering_schedule(crop, irrigation: str) -> list[dict]:
     return [{"week": 1, "frequency_days": 0, "liters_per_m2": 0}]
 
 
+def _ai_explanation(crop, region, irrigation, experience, plant_date) -> str:
+    """OpenRouter orqali qisqa AI tushuntirish (200-300 belgi)."""
+    try:
+        from togai.integrations import groq_chat
+        region_name = region.name_uz if region else "aniqlanmagan hudud"
+        prompt = (
+            f"Foydalanuvchi {region_name} hududida {crop.name_uz} ({crop.name_lat}) ekmoqchi. "
+            f"Sug'orish: {irrigation}. Tajriba: {experience}. "
+            f"Eng yaxshi ekish sanasi: {plant_date}. "
+            "3-4 jumlada o'zbek tilida qisqa, amaliy maslahat ber: "
+            "tuproq tayyorlash, ekish chuqurligi va qancha suv kerak. "
+            "Faqat 4 jumla, takrorlamasdan."
+        )
+        return groq_chat(
+            prompt,
+            system="Sen agrobiologsen — Markaziy Osiyo dehqonlari uchun amaliy maslahat berasen.",
+            max_tokens=200,
+            temperature=0.4,
+        )
+    except Exception:
+        return ""
+
+
 def build_advice(crop, lat: float, lon: float, irrigation: str,
                  plot_size_m2: int | None = None,
                  experience: str = "beginner") -> dict:
-    """Maslahat to'plamini yaratadi — AI'siz, tez."""
+    """Maslahat — Redis 24h cache + AI tushuntirish bilan."""
+    from datetime import datetime as _dt
+    from django.core.cache import cache as _cache
+
     region = find_region(lat, lon)
+    region_slug = region.slug if region else "x"
+    week_of_year = _dt.now().isocalendar()[1]
+    cache_key = f"crop-advice:v2:{crop.slug}:{region_slug}:{irrigation}:{week_of_year}:{experience}"
+    cached = _cache.get(cache_key)
+    if cached:
+        return cached
+
     forecast = get_30day_forecast(lat, lon)
     plant_date = best_plant_date(crop, region, forecast)
     harvest_date = plant_date + timedelta(days=(crop.days_to_harvest_min + crop.days_to_harvest_max) // 2)
@@ -105,7 +138,10 @@ def build_advice(crop, lat: float, lon: float, irrigation: str,
         f"Hosil ~{(harvest_date - plant_date).days} kunda."
     )
 
-    return {
+    # AI tushuntirish — TZ talabi bo'yicha
+    ai_explanation = _ai_explanation(crop, region, irrigation, experience, plant_date)
+
+    result = {
         "crop": crop.name_uz,
         "region": region.name_uz if region else None,
         "summary_uz": summary,
@@ -115,4 +151,9 @@ def build_advice(crop, lat: float, lon: float, irrigation: str,
         "tips_uz": tips,
         "warnings_uz": warnings,
         "recommended_variety": recommended,
+        "ai_explanation": ai_explanation,
     }
+
+    # 24 soat cache — TZ talabi
+    _cache.set(cache_key, result, 60 * 60 * 24)
+    return result
