@@ -6,12 +6,15 @@ from .views import (
     MeView,
     QuickAuthView,
     RequestOTPView,
+    SimpleAuthView,
     TelegramOTPRequestView,
     VerifyOTPView,
 )
 
 urlpatterns = [
     path("quick/", QuickAuthView.as_view(), name="auth-quick"),
+    # Asosiy login: telefon + parol — auto-register agar yangi
+    path("login/", SimpleAuthView.as_view(), name="auth-login"),
     path("otp/request/", RequestOTPView.as_view(), name="otp-request"),
     path("otp/verify/", VerifyOTPView.as_view(), name="otp-verify"),
     path("tg-otp/request/", TelegramOTPRequestView.as_view(), name="tg-otp-request"),

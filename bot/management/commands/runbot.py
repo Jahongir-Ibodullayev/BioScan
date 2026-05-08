@@ -37,7 +37,6 @@ class Command(BaseCommand):
         app.add_handler(CommandHandler("start", handlers.start))
         app.add_handler(CommandHandler("help", handlers.help_cmd))
         app.add_handler(CommandHandler("app", handlers.app_cmd))
-        app.add_handler(CommandHandler("login", handlers.login_cmd))
         app.add_handler(CommandHandler("sos", handlers.emergency))
         app.add_handler(CommandHandler("xavf", handlers.emergency))
         app.add_handler(CommandHandler("emergency", handlers.emergency))
@@ -45,8 +44,7 @@ class Command(BaseCommand):
         # Photo
         app.add_handler(MessageHandler(filters.PHOTO, handlers.photo_handler))
 
-        # Contact share — telefon ulash uchun
-        app.add_handler(MessageHandler(filters.CONTACT, handlers.contact_handler))
+        # /login va contact handler olib tashlandi — webapp endi telefon+parol bilan ishlaydi.
 
         # Callback queries (inline buttons)
         app.add_handler(CallbackQueryHandler(handlers.callback_handler))

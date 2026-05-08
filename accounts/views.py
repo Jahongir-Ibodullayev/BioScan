@@ -163,6 +163,63 @@ class QuickAuthView(APIView):
         )
 
 
+class SimpleAuthView(APIView):
+    """POST /api/auth/login/  {phone, password, full_name?}
+
+    Bitta endpoint — login + register avtomatik:
+      - Foydalanuvchi mavjud bo'lsa va parol to'g'ri → JWT (kirish)
+      - Mavjud emas bo'lsa → yangi hisob yaratiladi va JWT
+      - Parol noto'g'ri → 401
+
+    Hech qanday OTP, hech qanday Telegram — eng tezkor flow.
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        phone = (request.data.get("phone") or "").strip()
+        password = (request.data.get("password") or "").strip()
+        full_name = (request.data.get("full_name") or "").strip()
+
+        if not phone or not password:
+            return Response(
+                {"detail": "phone va password majburiy"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if len(password) < 4:
+            return Response(
+                {"detail": "Parol kamida 4 belgili bo'lsin"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = User.objects.filter(phone=phone).first()
+        created = False
+
+        if user is None:
+            # Yangi hisob yaratish
+            user = User.objects.create_user(phone=phone, password=password)
+            if full_name:
+                user.full_name = full_name
+                user.save(update_fields=["full_name"])
+            created = True
+        else:
+            # Mavjud — parolni tekshirish
+            if not user.check_password(password):
+                return Response(
+                    {"detail": "Parol noto'g'ri"},
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+            # full_name yangilash (faqat bo'sh bo'lsa)
+            if full_name and not user.full_name:
+                user.full_name = full_name
+                user.save(update_fields=["full_name"])
+
+        return Response(
+            {"user": UserSerializer(user).data, **tokens_for(user), "new": created},
+            status=status.HTTP_200_OK,
+        )
+
+
 class MeView(generics.RetrieveUpdateAPIView):
     """GET / PATCH /api/auth/me  — joriy foydalanuvchi profili."""
 
