@@ -1,10 +1,12 @@
-# gevent must monkey-patch ssl/socket BEFORE Django (and ultimately
-# urllib3/requests) imports them — otherwise stdlib ssl.SSLContext
-# property descriptors recurse forever on Python 3.12.
+# gevent monkey-patch — but skip ssl. Patching ssl on Python 3.12
+# breaks SSLContext.minimum_version (urllib3 / requests sets it at
+# import time and the patched descriptor recurses forever).
+# Nginx terminates TLS for inbound, and outbound HTTPS via requests
+# is fine without gevent ssl-patching.
 try:
     from gevent import monkey
 
-    monkey.patch_all()
+    monkey.patch_all(ssl=False)
 except ImportError:
     pass
 
