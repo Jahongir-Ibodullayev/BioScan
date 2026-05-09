@@ -102,6 +102,37 @@ MIN_CONFIDENCE = 0.40
 # Biologik kategoriya — boshqa hech narsa qabul qilinmaydi
 VALID_CATEGORIES = {"giyoh", "daraxt", "gul", "jonivor", "qush", "ilon", "hasharot", "qoziqorin", "baliq"}
 
+# AI ba'zan boshqa o'zbek so'zlarini qaytaradi — biologik bo'lgan barcha sinonimlar mapping
+CATEGORY_ALIASES = {
+    # plants
+    "sabzavot": "giyoh", "vegetable": "giyoh", "plant": "giyoh", "herb": "giyoh",
+    "o'simlik": "giyoh", "usimlik": "giyoh", "ekin": "giyoh",
+    "meva": "daraxt", "fruit": "daraxt", "tree": "daraxt", "bush": "daraxt", "buta": "daraxt",
+    "flower": "gul",
+    "don": "giyoh", "grain": "giyoh",
+    "dukkakli": "giyoh", "legume": "giyoh",
+    "texnik": "giyoh",
+    # animals
+    "animal": "jonivor", "mammal": "jonivor", "hayvon": "jonivor",
+    "bird": "qush",
+    "snake": "ilon",
+    "insect": "hasharot", "bug": "hasharot",
+    "fungus": "qoziqorin", "mushroom": "qoziqorin",
+    "fish": "baliq",
+}
+
+
+def _normalize_category(raw: str) -> str:
+    """AI's category → canonical VALID_CATEGORIES value."""
+    c = (raw or "").lower().strip()
+    if not c:
+        return ""
+    if c in VALID_CATEGORIES:
+        return c
+    if c in CATEGORY_ALIASES:
+        return CATEGORY_ALIASES[c]
+    return c  # unknown — caller decides
+
 
 def identify_from_image(
     image_bytes: bytes,
@@ -156,14 +187,20 @@ def identify_from_image(
             model_used=model_used,
         )
 
-    # GUARD: category must be biological
-    category = (ai.get("category") or "").lower().strip()
+    # GUARD: category must be biological. Accept aliases (sabzavot, fruit, plant, etc).
+    raw_category = (ai.get("category") or "").lower().strip()
+    category = _normalize_category(raw_category)
     if category and category not in VALID_CATEGORIES:
+        log.info("identify: rejecting unknown category=%r (latin=%s)",
+                 raw_category, ai.get("latin"))
         return IdentificationResult(
             found=False,
             reason="Bu biologik tur emas",
             model_used=model_used,
         )
+    # Patch the normalized category back so DB stores the canonical value.
+    if category:
+        ai["category"] = category
 
     # 2. Upsert Species row in DB
     try:
