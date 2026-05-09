@@ -29,6 +29,9 @@ max_requests_jitter = 200
 # across 8 workers and cuts cold-start time on every reload.
 preload_app = True
 
+# TZ §3.8 — Heartbeat fayllarini tmpfs'da saqlash, har request 5-10ms tejaymiz
+worker_tmp_dir = "/dev/shm"
+
 accesslog = "-"
 errorlog = "-"
 loglevel = os.getenv("GUNICORN_LOGLEVEL", "info")
