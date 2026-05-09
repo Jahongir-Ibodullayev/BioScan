@@ -7,10 +7,10 @@ User = get_user_model()
 
 class ConversationTests(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(phone="+998904444400", password="p")
+        self.user = User.objects.create_user(phone="+998904444400", password="pass")
         login = self.client.post(
             "/api/auth/login/",
-            {"phone": "+998904444400", "password": "p"},
+            {"phone": "+998904444400", "password": "pass"},
             format="json",
         )
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {login.data['access']}")

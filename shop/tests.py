@@ -17,7 +17,7 @@ class ShopPublicTests(APITestCase):
     def setUpTestData(cls):
         cls.cat = Category.objects.create(name="Chodirlar", slug="chodir")
         cls.seller = User.objects.create_user(
-            phone="+998901111100", password="x", full_name="Sotuvchi",
+            phone="+998901111100", password="pass", full_name="Sotuvchi",
         )
         cls.product = Product.objects.create(
             seller=cls.seller, category=cls.cat,
@@ -38,7 +38,8 @@ class ShopPublicTests(APITestCase):
         self.assertEqual(resp.status_code, 200)
 
     def test_product_detail(self):
-        resp = self.client.get(f"/api/shop/products/{self.product.slug}/")
+        # Default DRF lookup — pk
+        resp = self.client.get(f"/api/shop/products/{self.product.id}/")
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.data.get("title"), "Test chodir")
 
@@ -53,7 +54,7 @@ class ShopCartTests(APITestCase):
     @classmethod
     def setUpTestData(cls):
         cls.cat = Category.objects.create(name="Test", slug="test-cat")
-        cls.seller = User.objects.create_user(phone="+998901111101", password="x")
+        cls.seller = User.objects.create_user(phone="+998901111101", password="pass")
         cls.product = Product.objects.create(
             seller=cls.seller, category=cls.cat,
             title="Cart test", price=Decimal("100000"),
@@ -61,10 +62,10 @@ class ShopCartTests(APITestCase):
         )
 
     def setUp(self):
-        self.user = User.objects.create_user(phone="+998901111102", password="p")
+        self.user = User.objects.create_user(phone="+998901111102", password="pass")
         login = self.client.post(
             "/api/auth/login/",
-            {"phone": "+998901111102", "password": "p"},
+            {"phone": "+998901111102", "password": "pass"},
             format="json",
         )
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {login.data['access']}")

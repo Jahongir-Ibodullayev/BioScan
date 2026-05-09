@@ -17,10 +17,10 @@ class SavedSpeciesTests(APITestCase):
         )
 
     def setUp(self):
-        self.user = User.objects.create_user(phone="+998905555500", password="p")
+        self.user = User.objects.create_user(phone="+998905555500", password="pass")
         login = self.client.post(
             "/api/auth/login/",
-            {"phone": "+998905555500", "password": "p"},
+            {"phone": "+998905555500", "password": "pass"},
             format="json",
         )
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {login.data['access']}")
@@ -37,7 +37,7 @@ class SavedSpeciesTests(APITestCase):
     def test_list_my_saved_only(self):
         SavedSpecies.objects.create(user=self.user, species=self.species)
         # Boshqa user
-        other = User.objects.create_user(phone="+998905555501", password="x")
+        other = User.objects.create_user(phone="+998905555501", password="pass")
         SavedSpecies.objects.create(user=other, species=self.species)
         resp = self.client.get("/api/collections/")
         self.assertEqual(resp.status_code, 200)

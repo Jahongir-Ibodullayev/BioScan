@@ -18,10 +18,10 @@ class ObservationCRUDTests(APITestCase):
         )
 
     def setUp(self):
-        self.user = User.objects.create_user(phone="+998902222200", password="p")
+        self.user = User.objects.create_user(phone="+998902222200", password="pass")
         login = self.client.post(
             "/api/auth/login/",
-            {"phone": "+998902222200", "password": "p"},
+            {"phone": "+998902222200", "password": "pass"},
             format="json",
         )
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {login.data['access']}")
@@ -38,7 +38,7 @@ class ObservationCRUDTests(APITestCase):
     def test_my_observations_filtered_by_user(self):
         Observation.objects.create(user=self.user, species=self.species)
         # Boshqa user'ning kuzatuvi — ko'rinmaslik kerak
-        other = User.objects.create_user(phone="+998902222201", password="x")
+        other = User.objects.create_user(phone="+998902222201", password="pass")
         Observation.objects.create(user=other, species=self.species)
 
         resp = self.client.get("/api/observations/")

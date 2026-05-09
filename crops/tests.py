@@ -100,10 +100,10 @@ class CropPlanTests(APITestCase):
         )
 
     def setUp(self):
-        self.user = User.objects.create_user(phone="+998903333300", password="p")
+        self.user = User.objects.create_user(phone="+998903333300", password="pass")
         login = self.client.post(
             "/api/auth/login/",
-            {"phone": "+998903333300", "password": "p"},
+            {"phone": "+998903333300", "password": "pass"},
             format="json",
         )
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {login.data['access']}")
@@ -126,7 +126,7 @@ class CropPlanTests(APITestCase):
             irrigation="drip", planned_plant_date=date.today(),
         )
         # Boshqa user uchun reja
-        other = User.objects.create_user(phone="+998903333301", password="x")
+        other = User.objects.create_user(phone="+998903333301", password="pass")
         CropPlan.objects.create(
             user=other, crop=self.crop, lat=41.0, lon=69.0,
             irrigation="manual", planned_plant_date=date.today(),

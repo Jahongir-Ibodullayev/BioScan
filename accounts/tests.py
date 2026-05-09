@@ -62,10 +62,10 @@ class MeViewTests(APITestCase):
     """GET/PATCH /api/auth/me/ — profil ko'rish va yangilash."""
 
     def setUp(self):
-        self.user = User.objects.create_user(phone="+998901112288", password="x", full_name="Old Name")
+        self.user = User.objects.create_user(phone="+998901112288", password="pass", full_name="Old Name")
         login = self.client.post(
             "/api/auth/login/",
-            {"phone": "+998901112288", "password": "x"},
+            {"phone": "+998901112288", "password": "pass"},
             format="json",
         )
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {login.data['access']}")
@@ -89,10 +89,10 @@ class MeViewTests(APITestCase):
 
 class TokenRefreshTests(APITestCase):
     def test_refresh_token_works(self):
-        User.objects.create_user(phone="+998901112299", password="p")
+        User.objects.create_user(phone="+998901112299", password="pass")
         login = self.client.post(
             "/api/auth/login/",
-            {"phone": "+998901112299", "password": "p"},
+            {"phone": "+998901112299", "password": "pass"},
             format="json",
         )
         refresh = login.data["refresh"]
