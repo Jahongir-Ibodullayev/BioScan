@@ -52,3 +52,38 @@ class EdgeCacheMiddleware:
                 response["Vary"] = "Accept, Accept-Language"
                 break
         return response
+
+
+class SecurityHeadersMiddleware:
+    """Production security headers — OWASP tavsiyalari.
+
+    Django'ning SecurityMiddleware'i HSTS qo'yadi, lekin CSP, Permissions-Policy
+    va Referrer-Policy ni alohida boshqaramiz.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        # Browser'ga ruxsat etilgan resurslar
+        response.setdefault(
+            "Content-Security-Policy",
+            "default-src 'self'; "
+            "img-src 'self' data: https: blob:; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "font-src 'self' data:; "
+            "connect-src 'self' https: wss:; "
+            "frame-ancestors 'self';",
+        )
+        # Brauzerlar API'larini cheklash (kerak emaslarini)
+        response.setdefault(
+            "Permissions-Policy",
+            "geolocation=(self), camera=(self), microphone=(), payment=()",
+        )
+        response.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.setdefault("X-Content-Type-Options", "nosniff")
+        # Cross-origin resource policy — xavfsiz default
+        response.setdefault("Cross-Origin-Resource-Policy", "cross-origin")
+        return response

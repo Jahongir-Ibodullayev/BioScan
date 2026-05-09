@@ -95,6 +95,8 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # Vercel edge caching — anonim GET javoblariga Cache-Control qo'yadi
     "togai.middleware.EdgeCacheMiddleware",
+    # Production security headers (CSP, Permissions-Policy, Referrer-Policy)
+    "togai.middleware.SecurityHeadersMiddleware",
 ]
 
 SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=not DEBUG, cast=bool)
