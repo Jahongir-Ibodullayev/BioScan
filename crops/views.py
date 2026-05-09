@@ -53,8 +53,14 @@ class CropPlanViewSet(viewsets.ModelViewSet):
     """Foydalanuvchi rejalari."""
     serializer_class = CropPlanSerializer
     permission_classes = [permissions.IsAuthenticated]
+    queryset = CropPlan.objects.none()  # drf_spectacular schema gen uchun
 
     def get_queryset(self):
+        # Schema gen paytida AnonymousUser keladi — bo'sh queryset qaytaramiz
+        if getattr(self, "swagger_fake_view", False):
+            return CropPlan.objects.none()
+        if not self.request.user.is_authenticated:
+            return CropPlan.objects.none()
         return CropPlan.objects.filter(user=self.request.user).select_related("crop")
 
     def perform_create(self, serializer):
