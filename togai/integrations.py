@@ -288,11 +288,33 @@ def identify_species_from_image(image_bytes: bytes, mime: str = "image/jpeg") ->
                         "found": False,
                         "reason": f"Aniq tanib bo'lmadi (ishonch {int(conf*100)}%) — yaxshiroq rasm kerak",
                     }
-                # GUARD: kategoriya biologik bo'lishi shart
-                cat = (parsed.get("category") or "").lower().strip()
+                # GUARD: kategoriya biologik bo'lishi shart — alias'larni qabul qilamiz
+                raw_cat = (parsed.get("category") or "").lower().strip()
                 valid_cats = {"giyoh", "daraxt", "gul", "jonivor", "qush", "ilon", "hasharot", "qoziqorin", "baliq"}
+                aliases = {
+                    "sabzavot": "giyoh", "vegetable": "giyoh", "plant": "giyoh", "herb": "giyoh",
+                    "o'simlik": "giyoh", "usimlik": "giyoh", "ekin": "giyoh",
+                    "meva": "daraxt", "fruit": "daraxt", "tree": "daraxt", "bush": "daraxt", "buta": "daraxt",
+                    "flower": "gul",
+                    "don": "giyoh", "grain": "giyoh",
+                    "dukkakli": "giyoh", "legume": "giyoh",
+                    "texnik": "giyoh",
+                    "animal": "jonivor", "mammal": "jonivor", "hayvon": "jonivor",
+                    "bird": "qush",
+                    "snake": "ilon",
+                    "insect": "hasharot", "bug": "hasharot",
+                    "fungus": "qoziqorin", "mushroom": "qoziqorin",
+                    "fish": "baliq",
+                }
+                cat = raw_cat
+                if cat in aliases:
+                    cat = aliases[cat]
                 if cat and cat not in valid_cats:
+                    log.info("rejecting unknown category=%r (latin=%s)", raw_cat, parsed.get("latin"))
                     return {"found": False, "reason": "Bu biologik tur emas"}
+                # Canonical kategoriya — DB uchun
+                if cat:
+                    parsed["category"] = cat
                 # GUARD: lotincha nom haqiqiy ko'rinishda bo'lishi kerak
                 latin = (parsed.get("latin") or "").strip()
                 if not latin or len(latin) < 4:
