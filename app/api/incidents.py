@@ -1,48 +1,47 @@
-"""Incidents — community xavf hisoboti (/api/incidents/)."""
+"""Incidents — community xavf hisoboti (/api/incidents/).
+
+Webapp + Flutter ikkalasi multipart FormData yuborishadi (photo bilan).
+Webapp `reporter_name` kutadi (user.full_name).
+"""
 from __future__ import annotations
 
+import os
 import secrets
+from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile, status
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
+from sqlalchemy.orm import selectinload
 
 from app.api.deps import CurrentUser, DB, OptionalUser
+from app.core.config import settings
 from app.models.incident import Incident
+from app.models.user import User
+from app.schemas.common import paginated
 
 router = APIRouter(prefix="/incidents", tags=["incidents"])
 
-
-class IncidentOut(BaseModel):
-    id: int
-    code: str
-    category: str
-    severity: str
-    status: str
-    note: str
-    latitude: float | None = None
-    longitude: float | None = None
-    place_name: str = ""
-    created_at: str
-    reporter_id: int | None = None
+MEDIA_INCIDENTS = Path(settings.MEDIA_ROOT) / "incidents"
 
 
-class IncidentIn(BaseModel):
-    category: str
-    severity: str = "orta"
-    note: str = ""
-    latitude: float | None = None
-    longitude: float | None = None
-    place_name: str = ""
-
-
-def _to_out(i: Incident) -> IncidentOut:
-    return IncidentOut(
-        id=i.id, code=i.code, category=i.category, severity=i.severity, status=i.status,
-        note=i.note, latitude=i.latitude, longitude=i.longitude,
-        place_name=i.place_name, created_at=i.created_at.isoformat(),
-        reporter_id=i.reporter_id,
-    )
+def _to_out(i: Incident, reporter_name: str = "") -> dict:
+    """Webapp + Flutter format — reporter_name (str) qaytaradi."""
+    return {
+        "id": i.id,
+        "code": i.code,
+        "category": i.category,
+        "severity": i.severity,
+        "status": i.status,
+        "note": i.note,
+        "photo": (f"{settings.MEDIA_URL}{i.photo}" if i.photo else None),
+        "latitude": i.latitude,
+        "longitude": i.longitude,
+        "place_name": i.place_name,
+        "reporter_name": reporter_name,
+        "reporter_id": i.reporter_id,
+        "created_at": i.created_at.isoformat(),
+    }
 
 
 @router.get("/")
@@ -52,34 +51,69 @@ async def list_incidents(
     category: str | None = None,
     severity: str | None = None,
     mine: bool = False,
-    limit: int = Query(100, ge=1, le=500),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=500),
 ) -> dict:
-    stmt = select(Incident).order_by(Incident.created_at.desc()).limit(limit)
-    if category:
-        stmt = stmt.where(Incident.category == category)
-    if severity:
-        stmt = stmt.where(Incident.severity == severity)
-    if mine and user:
-        stmt = stmt.where(Incident.reporter_id == user.id)
+    base = select(Incident)
+    if category: base = base.where(Incident.category == category)
+    if severity: base = base.where(Incident.severity == severity)
+    if mine and user: base = base.where(Incident.reporter_id == user.id)
+    total = await db.scalar(select(func.count()).select_from(base.subquery())) or 0
+
+    stmt = base.order_by(Incident.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
     rows = (await db.scalars(stmt)).all()
-    return {"count": len(rows), "results": [_to_out(i).model_dump() for i in rows]}
+
+    # Reporter names ni alohida olib chiqamiz
+    reporter_ids = {i.reporter_id for i in rows if i.reporter_id}
+    name_map: dict[int, str] = {}
+    if reporter_ids:
+        users = (await db.scalars(select(User).where(User.id.in_(reporter_ids)))).all()
+        name_map = {u.id: (u.full_name or u.phone) for u in users}
+
+    items = [_to_out(i, reporter_name=name_map.get(i.reporter_id, "")) for i in rows]
+    return paginated(items, total=total, page=page, page_size=page_size)
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED, response_model=IncidentOut)
-async def create_incident(payload: IncidentIn, user: CurrentUser, db: DB) -> IncidentOut:
+@router.post("/", status_code=status.HTTP_201_CREATED)
+async def create_incident(
+    user: CurrentUser, db: DB,
+    category: str = Form(...),
+    severity: str = Form("orta"),
+    note: str = Form(""),
+    latitude: float | None = Form(None),
+    longitude: float | None = Form(None),
+    place_name: str = Form(""),
+    photo: UploadFile | None = File(None),
+) -> dict:
+    """multipart/form-data — webapp va Flutter shunday yuborishadi."""
     code = secrets.token_hex(4).upper()
+    photo_path = None
+    if photo and photo.filename:
+        MEDIA_INCIDENTS.mkdir(parents=True, exist_ok=True)
+        ext = os.path.splitext(photo.filename)[1] or ".jpg"
+        fname = f"{code}_{secrets.token_hex(4)}{ext}"
+        out = MEDIA_INCIDENTS / fname
+        out.write_bytes(await photo.read())
+        photo_path = f"incidents/{fname}"
     incident = Incident(
-        reporter_id=user.id, code=code, **payload.model_dump(),
+        reporter_id=user.id, code=code,
+        category=category, severity=severity, note=note,
+        latitude=latitude, longitude=longitude, place_name=place_name,
+        photo=photo_path,
     )
     db.add(incident)
     await db.commit()
     await db.refresh(incident)
-    return _to_out(incident)
+    return _to_out(incident, reporter_name=(user.full_name or user.phone))
 
 
-@router.get("/{incident_id}/", response_model=IncidentOut)
-async def get_incident(incident_id: int, db: DB) -> IncidentOut:
+@router.get("/{incident_id}/")
+async def get_incident(incident_id: int, db: DB) -> dict:
     i = await db.scalar(select(Incident).where(Incident.id == incident_id))
     if not i:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Incident topilmadi")
-    return _to_out(i)
+    reporter_name = ""
+    if i.reporter_id:
+        u = await db.scalar(select(User).where(User.id == i.reporter_id))
+        reporter_name = u.full_name or u.phone if u else ""
+    return _to_out(i, reporter_name=reporter_name)

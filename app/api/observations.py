@@ -17,8 +17,10 @@ from fastapi.responses import Response
 
 from pydantic import BaseModel
 from slugify import slugify
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
+
+from app.schemas.common import paginated
 
 from app.api.deps import CurrentUser, DB, OptionalUser
 from app.core.config import settings
@@ -45,53 +47,41 @@ class SpeciesNested(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class ObservationOut(BaseModel):
-    id: int
-    photo: str | None = None
-    ai_confidence: float
-    note: str
-    latitude: float | None = None
-    longitude: float | None = None
-    place_name: str = ""
-    created_at: str
-    species: SpeciesNested | None = None
-
-    @classmethod
-    def from_obs(cls, obs: Observation):
-        # Species selectinload bilan ekspilist olingan bo'ladi.
-        # Endpoint tomondan model_dump qilingandan keyin to'ldiramiz.
-        return cls(
-            id=obs.id,
-            photo=f"{settings.MEDIA_URL}{obs.photo}" if obs.photo else None,
-            ai_confidence=obs.ai_confidence,
-            note=obs.note,
-            latitude=obs.latitude,
-            longitude=obs.longitude,
-            place_name=obs.place_name,
-            created_at=obs.created_at.isoformat(),
-        )
+def _obs_to_dict(obs: Observation) -> dict:
+    """Webapp + Flutter expects: species: id, species_detail: nested."""
+    sp_detail = None
+    sp_id = obs.species_id
+    if obs.species:
+        sp_detail = SpeciesNested.model_validate(obs.species).model_dump()
+    return {
+        "id": obs.id,
+        "species": sp_id,
+        "species_detail": sp_detail,
+        "photo": f"{settings.MEDIA_URL}{obs.photo}" if obs.photo else None,
+        "ai_confidence": obs.ai_confidence,
+        "note": obs.note,
+        "latitude": obs.latitude,
+        "longitude": obs.longitude,
+        "place_name": obs.place_name,
+        "created_at": obs.created_at.isoformat(),
+    }
 
 
 @router.get("/")
-async def list_my_observations(user: CurrentUser, db: DB) -> dict:
-    """User'ning kuzatuvlari — composite index (user_id, created_at) tez ishlatadi.
-
-    selectinload bilan species N+1'siz olinadi (bitta IN query).
-    """
+async def list_my_observations(
+    user: CurrentUser, db: DB,
+    page: int = Query(1, ge=1), page_size: int = Query(50, ge=1, le=500),
+) -> dict:
+    """User'ning kuzatuvlari — DRF Paginated format."""
+    base = select(Observation).where(Observation.user_id == user.id)
+    total = await db.scalar(select(func.count()).select_from(base.subquery())) or 0
     stmt = (
-        select(Observation)
-        .options(selectinload(Observation.species))
-        .where(Observation.user_id == user.id)
+        base.options(selectinload(Observation.species))
         .order_by(Observation.created_at.desc())
+        .offset((page - 1) * page_size).limit(page_size)
     )
     rows = (await db.scalars(stmt)).all()
-    out = []
-    for o in rows:
-        d = ObservationOut.from_obs(o).model_dump()
-        if o.species:
-            d["species"] = SpeciesNested.model_validate(o.species).model_dump()
-        out.append(d)
-    return {"results": out}
+    return paginated([_obs_to_dict(o) for o in rows], total=total, page=page, page_size=page_size)
 
 
 @router.get("/public/")
@@ -116,10 +106,7 @@ async def public_feed(
         except (TypeError, ValueError):
             pass
     rows = (await db.scalars(stmt.limit(limit))).all()
-    return {
-        "count": len(rows),
-        "results": [ObservationOut.from_obs(o).model_dump() for o in rows],
-    }
+    return paginated([_obs_to_dict(o) for o in rows], total=len(rows))
 
 
 @router.post("/scan/")
@@ -128,11 +115,18 @@ async def scan_image(
     db: DB,
     user: OptionalUser,
     photo: UploadFile = File(...),
+    # Webapp + Flutter ikkalasi `latitude`/`longitude` yuborishadi.
+    # `lat`/`lng` ham qabul qilamiz — eski client'lar buzilmasin.
+    latitude: float | None = Form(None),
+    longitude: float | None = Form(None),
     lat: float | None = Form(None),
     lng: float | None = Form(None),
 ) -> dict:
     """AI tur aniqlash — Vision API. Auth ixtiyoriy. Rate: configured per-min."""
     await check_scan_limit(request, user)
+    # latitude/longitude ustun
+    lat_v = latitude if latitude is not None else lat
+    lng_v = longitude if longitude is not None else lng
     image_bytes = await photo.read()
     if not image_bytes:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Rasm bo'sh")
@@ -180,8 +174,8 @@ async def scan_image(
             user_id=user.id,
             species_id=sp.id,
             ai_confidence=float(result.get("confidence") or 0.0),
-            latitude=lat,
-            longitude=lng,
+            latitude=lat_v,
+            longitude=lng_v,
         )
         db.add(obs)
         await db.commit()
@@ -218,8 +212,11 @@ async def create_observation(payload: ObservationIn, user: CurrentUser, db: DB) 
     )
     db.add(obs)
     await db.commit()
-    await db.refresh(obs)
-    return ObservationOut.from_obs(obs).model_dump()
+    # species_detail to'ldirish uchun qayta o'qiymiz
+    obs = await db.scalar(
+        select(Observation).options(selectinload(Observation.species)).where(Observation.id == obs.id)
+    )
+    return _obs_to_dict(obs)
 
 
 @router.get("/{obs_id}/")
@@ -231,10 +228,7 @@ async def get_observation(obs_id: int, user: CurrentUser, db: DB) -> dict:
     )
     if not obs:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Kuzatuv topilmadi")
-    d = ObservationOut.from_obs(obs).model_dump()
-    if obs.species:
-        d["species"] = SpeciesNested.model_validate(obs.species).model_dump()
-    return d
+    return _obs_to_dict(obs)
 
 
 @router.delete("/{obs_id}/")

@@ -74,6 +74,42 @@ async def search_taxa(q: str = Query(..., min_length=2), db: DB = None) -> dict:
     return {"source": "none", "results": []}
 
 
+@router.get("/taxa/{taxon_id}/")
+async def taxon_detail(taxon_id: int, locale: str = "uz") -> dict:
+    """iNat taxon detail + Wikipedia summary (cascading uz → ru → en)."""
+    data = await _cached_get(f"{INAT_BASE}/taxa/{taxon_id}", ttl=86400)
+    if not data or not data.get("results"):
+        return {"found": False}
+    t = data["results"][0]
+    canonical = t.get("name")
+    common = t.get("preferred_common_name") or t.get("name")
+
+    # Wikipedia cascade
+    wiki = None
+    for lang in [locale, "ru", "en"]:
+        title = canonical
+        w = await _cached_get(f"https://{lang}.wikipedia.org/api/rest_v1/page/summary/{title}", ttl=86400)
+        if w and w.get("extract"):
+            wiki = {
+                "extract": w.get("extract"),
+                "thumbnail": (w.get("thumbnail") or {}).get("source"),
+                "url": (w.get("content_urls") or {}).get("desktop", {}).get("page"),
+                "lang": lang,
+            }
+            break
+
+    return {
+        "found": True,
+        "id": t.get("id"),
+        "name": common,
+        "latin": canonical,
+        "rank": t.get("rank"),
+        "kingdom": t.get("ancestry"),
+        "picture": (t.get("default_photo") or {}).get("medium_url"),
+        "wikipedia": wiki,
+    }
+
+
 @router.get("/observations/")
 async def search_observations(
     taxon_id: int = Query(...),

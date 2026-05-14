@@ -32,8 +32,11 @@ async def test_send_creates_conversation_and_replies(client):
     assert r.status_code == 200, r.text
     data = r.json()
     assert data["conversation_id"] > 0
-    assert data["reply"]["role"] == "ai"
-    assert "AI javob:" in data["reply"]["text"]
+    # Yangi contract: reply = string, reply_message = dict, messages = [user, ai]
+    assert isinstance(data["reply"], str)
+    assert "AI javob:" in data["reply"]
+    assert data["reply_message"]["role"] == "ai"
+    assert len(data["messages"]) == 2
 
 
 @pytest.mark.asyncio

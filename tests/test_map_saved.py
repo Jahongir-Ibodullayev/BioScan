@@ -50,7 +50,10 @@ async def test_saved_crud(client):
 
     r = await client.get("/api/saved/", headers=h)
     assert len(r.json()["results"]) == 1
-    assert r.json()["results"][0]["species"]["slug"] == "archa"
+    # Yangi shape: species (id) + species_detail (nested)
+    item = r.json()["results"][0]
+    assert isinstance(item["species"], int)
+    assert item["species_detail"]["slug"] == "archa"
 
     # Idempotency — ikkinchi marta yana qo'shsa OK
     r = await client.post("/api/saved/", json={"species_slug": "archa"}, headers=h)

@@ -39,7 +39,10 @@ async def test_categories_list(client):
     await _seed()
     r = await client.get("/api/shop/categories/")
     assert r.status_code == 200
-    assert any(c["slug"] == "asal" for c in r.json()["results"])
+    # Yangi contract: array directly (Flutter format)
+    data = r.json()
+    assert isinstance(data, list)
+    assert any(c["slug"] == "asal" for c in data)
 
 
 @pytest.mark.asyncio
