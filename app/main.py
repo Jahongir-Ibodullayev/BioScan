@@ -14,7 +14,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
-from app.api import ads, auth, catalog, chat, crops, mapdata, observations, saved, search, shop
+from app.api import ads, auth, catalog, chat, crops, incidents, mapdata, observations, saved, search, shop
 from app.core.config import settings
 from app.db.session import dispose_engine
 from app.middleware.cache_control import EdgeCacheMiddleware, SecurityHeadersMiddleware
@@ -115,7 +115,9 @@ app.include_router(crops.router, prefix=API)
 app.include_router(ads.router, prefix=API)
 app.include_router(mapdata.router, prefix=API)
 app.include_router(saved.router, prefix=API)
+app.include_router(saved.collections_router, prefix=API)
 app.include_router(search.router, prefix=API)
+app.include_router(incidents.router, prefix=API)
 
 
 @app.get("/api/health/")

@@ -100,6 +100,35 @@ class OrderItem(Base):
     quantity: Mapped[int] = mapped_column(Integer, default=1)
 
 
+class Cart(Base):
+    __tablename__ = "shop_cart"
+
+    id: Mapped[int] = mapped_column(BIGINT_PK, primary_key=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("accounts_user.id", ondelete="CASCADE"), unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
+class CartItem(Base):
+    __tablename__ = "shop_cartitem"
+
+    id: Mapped[int] = mapped_column(BIGINT_PK, primary_key=True)
+    cart_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("shop_cart.id", ondelete="CASCADE"))
+    product_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("shop_product.id", ondelete="CASCADE"))
+    quantity: Mapped[int] = mapped_column(Integer, default=1)
+    added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
+class Wishlist(Base):
+    __tablename__ = "shop_wishlist"
+
+    id: Mapped[int] = mapped_column(BIGINT_PK, primary_key=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("accounts_user.id", ondelete="CASCADE"))
+    product_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("shop_product.id", ondelete="CASCADE"))
+    # Django'da `added_at` deb nomlangan
+    added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
 class Review(Base):
     __tablename__ = "shop_review"
 

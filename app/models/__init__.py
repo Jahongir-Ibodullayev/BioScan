@@ -7,20 +7,22 @@ from .user import User, OTPCode
 from .species import Species
 from .observation import Observation, ScanFeedback, TFLiteModel
 from .chat import Conversation, Message
-from .shop import Category, Product, Order, OrderItem, Review
+from .shop import Cart, CartItem, Category, Order, OrderItem, Product, Review, Wishlist
 from .crops import Region, Crop, CropPlan
 from .ads import Ad
 from .saved import SavedSpecies
 from .mapdata import MapMarker
+from .incident import Incident
 
 __all__ = [
     "User", "OTPCode",
     "Species",
     "Observation", "ScanFeedback", "TFLiteModel",
     "Conversation", "Message",
-    "Category", "Product", "Order", "OrderItem", "Review",
+    "Category", "Product", "Order", "OrderItem", "Review", "Cart", "CartItem", "Wishlist",
     "Region", "Crop", "CropPlan",
     "Ad",
     "SavedSpecies",
     "MapMarker",
+    "Incident",
 ]

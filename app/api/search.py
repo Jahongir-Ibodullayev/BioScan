@@ -74,6 +74,108 @@ async def search_taxa(q: str = Query(..., min_length=2), db: DB = None) -> dict:
     return {"source": "none", "results": []}
 
 
+@router.get("/observations/")
+async def search_observations(
+    taxon_id: int = Query(...),
+    lat: float | None = None,
+    lng: float | None = None,
+    radius: int | None = None,
+    place: str = "uz",
+    per_page: int = Query(30, ge=1, le=100),
+) -> dict:
+    """iNaturalist'dan eng yaqin kuzatuvlar (Flutter xarita uchun)."""
+    params: dict = {"taxon_id": taxon_id, "per_page": per_page, "geo": "true"}
+    if lat is not None and lng is not None:
+        params["lat"] = lat
+        params["lng"] = lng
+        if radius:
+            params["radius"] = radius
+    if place:
+        params["place_id"] = {"uz": 7080, "kz": 6926, "tj": 7037}.get(place.lower(), 7080)
+    data = await _cached_get(f"{INAT_BASE}/observations", **params)
+    if not data:
+        return {"results": []}
+    return {
+        "count": data.get("total_results", 0),
+        "results": [
+            {
+                "id": o.get("id"),
+                "lat": o.get("geojson", {}).get("coordinates", [None, None])[1],
+                "lng": o.get("geojson", {}).get("coordinates", [None, None])[0],
+                "place": o.get("place_guess"),
+                "observed_on": o.get("observed_on"),
+                "photo": (o.get("photos") or [{}])[0].get("url"),
+                "user": (o.get("user") or {}).get("login"),
+            }
+            for o in data.get("results", [])
+        ],
+    }
+
+
+@router.get("/wiki/")
+async def wiki_summary(title: str = Query(..., min_length=2), lang: str = "uz") -> dict:
+    """Wikipedia REST API — qisqacha ma'lumot."""
+    base = f"https://{lang}.wikipedia.org/api/rest_v1"
+    data = await _cached_get(f"{base}/page/summary/{title}", ttl=86400)
+    if not data:
+        return {"found": False}
+    return {
+        "found": True,
+        "title": data.get("title"),
+        "extract": data.get("extract"),
+        "thumbnail": (data.get("thumbnail") or {}).get("source"),
+        "url": (data.get("content_urls") or {}).get("desktop", {}).get("page"),
+    }
+
+
+@router.get("/gbif/")
+async def gbif_search(q: str = Query(..., min_length=2), limit: int = 10) -> dict:
+    """GBIF taxon backbone qidirish."""
+    data = await _cached_get(f"{GBIF_BASE}/species/search", q=q, limit=limit)
+    if not data:
+        return {"results": []}
+    return {
+        "results": [
+            {
+                "key": r.get("key"), "scientificName": r.get("scientificName"),
+                "canonicalName": r.get("canonicalName"), "kingdom": r.get("kingdom"),
+                "family": r.get("family"), "rank": r.get("rank"),
+            }
+            for r in data.get("results", [])
+        ]
+    }
+
+
+@router.get("/enrich/")
+async def enrich_species(latin: str = Query(..., min_length=2)) -> dict:
+    """Tur haqida boyitilgan ma'lumot — iNat + GBIF birlashtirildi."""
+    inat = await _cached_get(f"{INAT_BASE}/taxa", q=latin, per_page=1) or {}
+    inat_first = (inat.get("results") or [{}])[0]
+    gbif = await _cached_get(f"{GBIF_BASE}/species/match", name=latin) or {}
+    return {
+        "latin": latin,
+        "common_name": inat_first.get("preferred_common_name"),
+        "rank": inat_first.get("rank") or gbif.get("rank"),
+        "kingdom": gbif.get("kingdom"),
+        "family": gbif.get("family"),
+        "photo": (inat_first.get("default_photo") or {}).get("medium_url"),
+        "inat_id": inat_first.get("id"),
+        "gbif_key": gbif.get("usageKey"),
+    }
+
+
+@router.get("/ai-help/")
+async def ai_help(q: str = Query(..., min_length=2)) -> dict:
+    """AI yordamchi — tur haqida qisqa javob."""
+    from app.services.ai import openrouter_chat
+    text = await openrouter_chat(
+        f"Quyidagi biologik tur haqida qisqa ma'lumot ber (2-3 jumla): {q}",
+        system="Sen biolog mutaxassissan. Markaziy Osiyo turlari bo'yicha.",
+        max_tokens=200, temperature=0.4,
+    )
+    return {"answer": text}
+
+
 @router.get("/browse/")
 async def browse(category: str = "giyoh", db: DB = None) -> dict:
     """Foydalanuvchi 'giyoh / daraxt / gul ...' tablarini bossa."""

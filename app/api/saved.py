@@ -11,6 +11,8 @@ from app.models.saved import SavedSpecies
 from app.models.species import Species
 
 router = APIRouter(prefix="/saved", tags=["saved"])
+# Webapp eski URL — /collections/ saved bilan bir xil ishlaydi
+collections_router = APIRouter(prefix="/collections", tags=["collections"])
 
 
 class SaveIn(BaseModel):
@@ -72,3 +74,19 @@ async def unsave(slug: str, user: CurrentUser, db: DB) -> dict:
     )
     await db.commit()
     return {"ok": True}
+
+
+# Webapp eski URL — alias
+@collections_router.get("/")
+async def list_collections(user: CurrentUser, db: DB) -> dict:
+    return await list_saved(user, db)
+
+
+@collections_router.post("/", status_code=status.HTTP_201_CREATED)
+async def add_collection(payload: SaveIn, user: CurrentUser, db: DB) -> dict:
+    return await save(payload, user, db)
+
+
+@collections_router.delete("/{slug}/")
+async def remove_collection(slug: str, user: CurrentUser, db: DB) -> dict:
+    return await unsave(slug, user, db)

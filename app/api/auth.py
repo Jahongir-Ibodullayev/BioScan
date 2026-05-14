@@ -70,6 +70,44 @@ async def simple_auth(req: LoginRequest, db: DB) -> AuthResponse:
     )
 
 
+class QuickAuthRequest(BaseModel):
+    phone: str
+    full_name: str | None = None
+
+
+@router.post("/quick/", response_model=AuthResponse)
+async def quick_auth(req: QuickAuthRequest, db: DB) -> AuthResponse:
+    """SMS kod talab qilmaydi — telefon raqami bilan to'g'ridan-to'g'ri JWT.
+
+    QUICK_AUTH_ENABLED=false bo'lsa 403. Foydalanuvchi yo'q bo'lsa yaratiladi.
+    Eski webapp shu endpoint'dan foydalanadi.
+    """
+    if not settings.QUICK_AUTH_ENABLED:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Quick auth o'chirilgan. OTP orqali kiring.")
+
+    phone = req.phone.strip()
+    full_name = (req.full_name or "").strip()
+    if not phone:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "phone majburiy")
+
+    user = await db.scalar(select(User).where(User.phone == phone))
+    created = False
+    if user is None:
+        user = User(phone=phone, password="", full_name=full_name, is_active=True)
+        db.add(user)
+        created = True
+    elif full_name and not user.full_name:
+        user.full_name = full_name
+    await db.commit()
+    await db.refresh(user)
+
+    return AuthResponse(
+        user=UserOut.model_validate(user),
+        **tokens_for(user.id),
+        new=created,
+    )
+
+
 @router.get("/me/", response_model=UserOut)
 async def me(user: CurrentUser) -> UserOut:
     return UserOut.model_validate(user)

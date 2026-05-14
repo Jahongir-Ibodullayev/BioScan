@@ -50,6 +50,22 @@ async def list_messages(conv_id: int, user: CurrentUser, db: DB) -> dict:
 
 @router.post("/send/")
 async def send_message(payload: ChatMessage, user: CurrentUser, db: DB) -> dict:
+    return await _send_impl(payload, user, db)
+
+
+@router.post("/conversations/ask/")
+async def ask_conversation(payload: ChatMessage, user: CurrentUser, db: DB) -> dict:
+    """Webapp eski URL — /chat/send/ bilan teng."""
+    return await _send_impl(payload, user, db)
+
+
+@router.post("/ai/")
+async def chat_ai(payload: ChatMessage, user: CurrentUser, db: DB) -> dict:
+    """Flutter foydalanadi — /chat/send/ bilan teng."""
+    return await _send_impl(payload, user, db)
+
+
+async def _send_impl(payload: ChatMessage, user: CurrentUser, db: DB) -> dict:
     text = payload.text.strip()
     if not text:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Xabar bo'sh bo'lmaslik kerak")
