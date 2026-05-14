@@ -1,7 +1,10 @@
-"""User + OTPCode — Django accounts_user / accounts_otpcode jadvallari (real schema)."""
+"""User — Django accounts_user jadvali.
+
+OTPCode olib tashlangan — OTP funksionalligi tugatildi.
+"""
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from sqlalchemy import BigInteger, Boolean, DateTime, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
@@ -34,38 +37,19 @@ class User(Base):
     locale: Mapped[str] = mapped_column(String(5), default="uz")
     verified_member: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    # E-commerce role (Django migration 0002 qo'shgan)
+    # E-commerce role
     account_type: Mapped[str] = mapped_column(String(20), default="customer")
     seller_name: Mapped[str] = mapped_column(String(120), default="")
     seller_bio: Mapped[str] = mapped_column(Text, default="")
     seller_verified: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    # Telegram link (0003)
+    # Telegram link — bot CRM/notification uchun (OTP emas)
     telegram_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True, unique=True, index=True)
     telegram_username: Mapped[str] = mapped_column(String(64), default="")
 
-    # FCM (0004)
+    # FCM push
     fcm_token: Mapped[str] = mapped_column(String(255), default="", index=True)
     fcm_platform: Mapped[str] = mapped_column(String(20), default="")
 
     def __repr__(self) -> str:
         return f"<User {self.phone}>"
-
-
-class OTPCode(Base):
-    __tablename__ = "accounts_otpcode"
-
-    id: Mapped[int] = mapped_column(BIGINT_PK, primary_key=True)
-    phone: Mapped[str] = mapped_column(String(20), index=True)
-    code: Mapped[str] = mapped_column(String(6))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    used: Mapped[bool] = mapped_column(Boolean, default=False)
-
-    def is_valid(self) -> bool:
-        if self.used:
-            return False
-        now = datetime.now(timezone.utc)
-        created = self.created_at
-        if created.tzinfo is None:
-            created = created.replace(tzinfo=timezone.utc)
-        return (now - created) < timedelta(minutes=2)

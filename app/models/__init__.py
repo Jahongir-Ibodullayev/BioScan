@@ -3,7 +3,7 @@
 Har bir Django model uchun teng SQLAlchemy model. __tablename__ Django'ning
 default jadval nomi (`<app>_<model>`).
 """
-from .user import User, OTPCode
+from .user import User
 from .species import Species
 from .observation import Observation, ScanFeedback, TFLiteModel
 from .chat import Conversation, Message
@@ -15,7 +15,7 @@ from .mapdata import MapMarker
 from .incident import Incident
 
 __all__ = [
-    "User", "OTPCode",
+    "User",
     "Species",
     "Observation", "ScanFeedback", "TFLiteModel",
     "Conversation", "Message",
