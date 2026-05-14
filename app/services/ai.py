@@ -1,0 +1,106 @@
+"""OpenRouter chat + vision — Django'ning togai/integrations.py async portasi."""
+from __future__ import annotations
+
+import base64
+import json
+import logging
+
+import httpx
+
+from app.core.config import settings
+
+log = logging.getLogger(__name__)
+
+
+async def openrouter_chat(
+    prompt: str,
+    system: str = "",
+    max_tokens: int = 600,
+    temperature: float = 0.4,
+    model: str | None = None,
+) -> str:
+    """OpenRouter — chat completion (asinxron)."""
+    if not settings.OPENROUTER_API_KEY:
+        return "Hozir javob bera olmadim — API kalit yo'q."
+
+    model = model or settings.OPENROUTER_CHAT_MODEL
+    messages = []
+    if system:
+        messages.append({"role": "system", "content": system})
+    messages.append({"role": "user", "content": prompt})
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            r = await client.post(
+                f"{settings.OPENROUTER_BASE}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "messages": messages,
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                },
+            )
+            r.raise_for_status()
+            data = r.json()
+        return data["choices"][0]["message"]["content"].strip()
+    except (httpx.HTTPError, KeyError, IndexError) as e:
+        log.warning("openrouter chat failed: %s", e)
+        return "Hozir javob bera olmadim — qaytadan urinib ko'ring."
+
+
+async def identify_species_from_image(image_bytes: bytes, mime: str = "image/jpeg") -> dict:
+    """Vision API — rasmda turni aniqlash.
+
+    Django integrations.identify_species_from_image bilan teng struktura.
+    Return: {found, name, latin, category, summary, description, ...} yoki
+            {found: False, reason: "..."}
+    """
+    if not settings.OPENROUTER_API_KEY:
+        return {"found": False, "reason": "AI mavjud emas"}
+
+    b64 = base64.b64encode(image_bytes).decode()
+    data_url = f"data:{mime};base64,{b64}"
+
+    prompt = (
+        "Quyidagi rasmni ko'rib, bittagina biologik turni aniqlang. Faqat JSON qaytaring:\n"
+        '{"found": bool, "name": "...", "latin": "...", "category": "giyoh|daraxt|gul|jonivor|hasharot|qush|qoziqorin",'
+        ' "summary": "...", "description": "...", "habitat": "...", "uses": "...", "warnings": "...", "first_aid": "...",'
+        ' "regions": "...", "confidence": 0.0-1.0}'
+        "Agar rasmda tur ko'rinmasa: {\"found\": false, \"reason\": \"...\"}. Faqat o'zbek tilida yozing."
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            r = await client.post(
+                f"{settings.OPENROUTER_BASE}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": settings.OPENROUTER_VISION_MODEL,
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": prompt},
+                                {"type": "image_url", "image_url": {"url": data_url}},
+                            ],
+                        }
+                    ],
+                    "max_tokens": 700,
+                    "temperature": 0.2,
+                    "response_format": {"type": "json_object"},
+                },
+            )
+            r.raise_for_status()
+            data = r.json()
+        text = data["choices"][0]["message"]["content"]
+        return json.loads(text)
+    except (httpx.HTTPError, KeyError, IndexError, json.JSONDecodeError) as e:
+        log.warning("vision identify failed: %s", e)
+        return {"found": False, "reason": "AI xato bilan javob qaytardi"}

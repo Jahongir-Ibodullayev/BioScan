@@ -1,0 +1,15 @@
+[Unit]
+Description=BioScan Celery worker
+After=network.target redis.service
+
+[Service]
+User=kayumovvv
+Group=kayumovvv
+WorkingDirectory=/home/kayumovvv/loyihalarim/bioscan-fastapi
+EnvironmentFile=/home/kayumovvv/loyihalarim/bioscan-fastapi/.env
+ExecStart=/home/kayumovvv/loyihalarim/bioscan-fastapi/venv/bin/celery -A app.celery_app worker --loglevel=info --concurrency=4
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

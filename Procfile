@@ -1,2 +1,3 @@
-web: python manage.py migrate --noinput && python manage.py collectstatic --noinput && python -m gunicorn togai.wsgi -c gunicorn.conf.py
-bot: python manage.py runbot
+web: gunicorn -c gunicorn.conf.py app.main:app
+worker: celery -A app.celery_app worker --loglevel=info --concurrency=4
+beat: celery -A app.celery_app beat --loglevel=info

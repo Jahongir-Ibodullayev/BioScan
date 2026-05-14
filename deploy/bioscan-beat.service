@@ -1,0 +1,15 @@
+[Unit]
+Description=BioScan Celery beat (scheduler)
+After=network.target redis.service
+
+[Service]
+User=kayumovvv
+Group=kayumovvv
+WorkingDirectory=/home/kayumovvv/loyihalarim/bioscan-fastapi
+EnvironmentFile=/home/kayumovvv/loyihalarim/bioscan-fastapi/.env
+ExecStart=/home/kayumovvv/loyihalarim/bioscan-fastapi/venv/bin/celery -A app.celery_app beat --loglevel=info
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

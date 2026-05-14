@@ -1,0 +1,20 @@
+[Unit]
+Description=BioScan FastAPI (gunicorn + uvicorn workers)
+After=network.target postgresql.service redis.service
+
+[Service]
+Type=notify
+User=kayumovvv
+Group=kayumovvv
+WorkingDirectory=/home/kayumovvv/loyihalarim/bioscan-fastapi
+EnvironmentFile=/home/kayumovvv/loyihalarim/bioscan-fastapi/.env
+ExecStart=/home/kayumovvv/loyihalarim/bioscan-fastapi/venv/bin/gunicorn -c gunicorn.conf.py app.main:app
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=30
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
