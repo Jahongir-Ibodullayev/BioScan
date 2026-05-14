@@ -1,9 +1,8 @@
 """Umumiy schemas — Paginated, count, next, previous (DRF bilan teng)."""
 from __future__ import annotations
 
-from typing import Generic, TypeVar
+from typing import TypeVar
 
-from pydantic import BaseModel
 
 T = TypeVar("T")
 

@@ -9,10 +9,8 @@ import os
 import secrets
 from pathlib import Path
 
-from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile, status
-from pydantic import BaseModel
+from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, select
-from sqlalchemy.orm import selectinload
 
 from app.api.deps import CurrentUser, DB, OptionalUser
 from app.core.config import settings
