@@ -114,6 +114,14 @@ app.include_router(shop.router, prefix=API)
 app.include_router(crops.router, prefix=API)
 app.include_router(ads.router, prefix=API)
 app.include_router(mapdata.router, prefix=API)
+# Admin panel — /admin/ (faqat is_superuser)
+try:
+    from app.admin import setup_admin
+    setup_admin(app, settings.SECRET_KEY)
+    log.info("Admin panel: /admin/")
+except Exception as e:
+    log.warning("Admin panel ulanmadi: %s", e)
+
 app.include_router(saved.router, prefix=API)
 app.include_router(saved.collections_router, prefix=API)
 app.include_router(search.router, prefix=API)
