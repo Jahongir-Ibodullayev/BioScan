@@ -39,6 +39,27 @@ class CategoryOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+from pydantic import field_validator
+
+# wsrv.nl global CDN — webp + resize + 404 holatida default real rasm.
+# Unsplash ID'larining ~50% o'lik edi → barcha mijoz (webapp, Flutter)
+# uchun shu yerda tuzatamiz, client kod o'zgarmaydi.
+_IMG_FALLBACK = "images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=480&q=70"
+
+
+def proxy_image(url: str | None) -> str:
+    if not url:
+        return ""
+    if url.startswith("data:") or "wsrv.nl" in url:
+        return url
+    clean = url.replace("https://", "").replace("http://", "").split("?")[0]
+    from urllib.parse import quote
+    return (
+        f"https://wsrv.nl/?url={quote(clean)}"
+        f"&w=480&output=webp&q=72&default={quote(_IMG_FALLBACK)}"
+    )
+
+
 class ProductOut(BaseModel):
     id: int
     seller_id: int
@@ -61,6 +82,11 @@ class ProductOut(BaseModel):
     external_url: str = ""
     external_seller: str = ""
     model_config = {"from_attributes": True}
+
+    @field_validator("image_url", mode="after")
+    @classmethod
+    def _proxy(cls, v: str) -> str:
+        return proxy_image(v)
 
 
 # ============================================================================
@@ -161,7 +187,7 @@ async def get_cart(user: CurrentUser, db: DB) -> dict:
         items.append({
             "id": it.id, "product_id": p.id, "title": p.title,
             "price": str(price), "quantity": it.quantity,
-            "subtotal": str(subtotal), "image_url": p.image_url,
+            "subtotal": str(subtotal), "image_url": proxy_image(p.image_url),
         })
     return {"items": items, "total": str(total), "count": len(items), "cart_id": cart.id}
 
@@ -247,7 +273,7 @@ async def list_wishlist(
         {
             "id": w.id, "product_id": p.id, "title": p.title,
             "price": str(p.discount_price or p.price),
-            "image_url": p.image_url, "added_at": w.added_at.isoformat(),
+            "image_url": proxy_image(p.image_url), "added_at": w.added_at.isoformat(),
         }
         for w, p in rows
     ]
