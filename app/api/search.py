@@ -36,42 +36,90 @@ async def _cached_get(url: str, ttl: int = 3600, **kwargs) -> dict | None:
         return None
 
 
+def _score(q: str, name: str, latin: str) -> int:
+    """Moslik bahosi — aniq mos = 100, boshi mos = 70, ichida = 40."""
+    ql = q.lower().strip()
+    n, lt = (name or "").lower(), (latin or "").lower()
+    if ql == n or ql == lt:
+        return 100
+    if n.startswith(ql) or lt.startswith(ql):
+        return 70
+    if ql in n or ql in lt:
+        return 40
+    return 10
+
+
 @router.get("/taxa/")
 async def search_taxa(q: str = Query(..., min_length=2), db: DB = None) -> dict:
-    """Lokal katalog → iNat → GBIF fallback. Birinchi mos kelganini qaytaradi."""
-    # Lokal Species
-    if db is not None:
+    """Lokal + iNat + GBIF — UCHALASI PARALLEL, eng aniq natija birinchi.
+
+    asyncio.gather bilan 3 manba bir vaqtda so'raladi → tez (eng sekin
+    manba qancha bo'lsa shuncha, ketma-ket emas). Natijalar _score bo'yicha
+    saralanadi — eng aniq mos eng tepada.
+    """
+    import asyncio
+
+    async def _local():
+        if db is None:
+            return []
         like = f"%{q}%"
-        local = await db.scalar(
+        rows = (await db.scalars(
             select(Species).where(
                 (Species.name.ilike(like)) | (Species.latin.ilike(like))
-            ).limit(1)
-        )
-        if local:
-            return {
-                "source": "local",
-                "results": [{
-                    "id": local.id, "slug": local.slug, "name": local.name,
-                    "latin": local.latin, "category": local.category,
-                    "picture": local.picture,
-                }],
-            }
+            ).limit(8)
+        )).all()
+        return [{
+            "source": "local", "id": r.id, "slug": r.slug, "name": r.name,
+            "latin": r.latin, "category": r.category, "picture": r.picture,
+            "_s": _score(q, r.name, r.latin) + 15,  # lokal +15 bonus (bizniki, ishonchli)
+        } for r in rows]
 
-    # iNat
-    data = await _cached_get(f"{INAT_BASE}/taxa/autocomplete", q=q, per_page=10)
-    if data and data.get("results"):
-        results = [
-            {
-                "id": r.get("id"),
-                "name": r.get("preferred_common_name") or r.get("name"),
-                "latin": r.get("name"),
-                "picture": (r.get("default_photo") or {}).get("medium_url"),
-            }
-            for r in data.get("results", [])
-        ]
-        return {"source": "inat", "results": results}
+    async def _inat():
+        d = await _cached_get(f"{INAT_BASE}/taxa/autocomplete", q=q, per_page=8)
+        if not d or not d.get("results"):
+            return []
+        return [{
+            "source": "inat", "id": r.get("id"),
+            "name": r.get("preferred_common_name") or r.get("name"),
+            "latin": r.get("name"),
+            "picture": (r.get("default_photo") or {}).get("medium_url"),
+            "_s": _score(q, r.get("preferred_common_name") or "", r.get("name") or ""),
+        } for r in d.get("results", [])]
 
-    return {"source": "none", "results": []}
+    async def _gbif():
+        d = await _cached_get(f"{GBIF_BASE}/species/search", q=q, limit=8)
+        if not d or not d.get("results"):
+            return []
+        return [{
+            "source": "gbif", "id": r.get("key"),
+            "name": r.get("vernacularName") or r.get("canonicalName"),
+            "latin": r.get("canonicalName") or r.get("scientificName"),
+            "picture": None, "family": r.get("family"),
+            "_s": _score(q, r.get("vernacularName") or "", r.get("canonicalName") or ""),
+        } for r in d.get("results", [])]
+
+    # 3 manba PARALLEL
+    local, inat, gbif = await asyncio.gather(_local(), _inat(), _gbif())
+    merged = local + inat + gbif
+    if not merged:
+        return {"source": "none", "results": []}
+
+    # Eng aniq birinchi, dublikat latin'larni olib tashlaymiz
+    merged.sort(key=lambda x: x["_s"], reverse=True)
+    seen, results = set(), []
+    for r in merged:
+        key = (r.get("latin") or r.get("name") or "").lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        r.pop("_s", None)
+        results.append(r)
+
+    return {
+        "source": "merged",
+        "best": results[0] if results else None,
+        "results": results[:15],
+    }
 
 
 @router.get("/taxa/{taxon_id}/")
