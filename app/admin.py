@@ -19,7 +19,7 @@ from app.models.incident import Incident
 from app.models.mapdata import MapMarker
 from app.models.observation import Observation, ScanFeedback, TFLiteModel
 from app.models.saved import SavedSpecies
-from app.models.shop import Cart, CartItem, Category, Order, OrderItem, Product, Review, Wishlist
+from app.models.shop import Cart, Category, Order, OrderItem, Product, Review, Wishlist
 from app.models.species import Species
 from app.models.user import User
 
