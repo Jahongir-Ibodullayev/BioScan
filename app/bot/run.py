@@ -39,8 +39,8 @@ WELCOME = (
 
 LOGIN_PROMPT = (
     "📱 Telefon raqamingizni ulashish uchun pastdagi tugmani bosing.\n\n"
-    "Bu BioScan webapp/APK'ga kirish uchun ishlatiladi. "
-    "Hisobingiz Telegram'ga bog'lanadi va sizga OTP kodlari shu yerga keladi."
+    "Hisobingiz Telegram'ga bog'lanadi (xabarlar uchun). "
+    "Ilovaga kirish — telefon raqam va parol bilan."
 )
 
 
@@ -85,8 +85,8 @@ async def on_contact(update: Update, _ctx: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         f"✅ Raqam <code>{phone}</code> bog'landi!\n\n"
-        "Endi webapp'ga kiring: https://bioscan.duckdns.org\n"
-        "OTP kodi shu yerga keladi.",
+        "Endi ilovaga kiring: https://bioscan.duckdns.org\n"
+        "Telefon raqam va parol bilan kirasiz.",
         parse_mode="HTML",
         disable_web_page_preview=True,
     )
