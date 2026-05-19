@@ -52,12 +52,10 @@ def proxy_image(url: str | None) -> str:
         return ""
     if url.startswith("data:") or "wsrv.nl" in url:
         return url
-    clean = url.replace("https://", "").replace("http://", "").split("?")[0]
+    # Query param SAQLANADI (Unsplash signature kerak). default= hack OLIB TASHLANDI.
+    clean = url.replace("https://", "").replace("http://", "")
     from urllib.parse import quote
-    return (
-        f"https://wsrv.nl/?url={quote(clean)}"
-        f"&w=480&output=webp&q=72&default={quote(_IMG_FALLBACK)}"
-    )
+    return f"https://wsrv.nl/?url={quote(clean)}&w=600&output=webp&q=75"
 
 
 class ProductOut(BaseModel):
