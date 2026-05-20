@@ -14,7 +14,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
-from app.api import ads, auth, catalog, chat, crops, incidents, mapdata, observations, saved, search, shop
+from app.api import ads, auth, catalog, chat, crops, incidents, mapdata, observations, saved, search, seller as seller_router, shop
 from app.core.config import settings
 from app.db.session import dispose_engine
 from app.middleware.cache_control import EdgeCacheMiddleware, SecurityHeadersMiddleware
@@ -111,6 +111,7 @@ app.include_router(catalog.router, prefix=API)
 app.include_router(observations.router, prefix=API)
 app.include_router(chat.router, prefix=API)
 app.include_router(shop.router, prefix=API)
+app.include_router(seller_router.router, prefix=API)
 app.include_router(crops.router, prefix=API)
 app.include_router(ads.router, prefix=API)
 app.include_router(mapdata.router, prefix=API)

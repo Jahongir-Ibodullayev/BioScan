@@ -50,6 +50,26 @@ async def get_optional_user(
     return await db.scalar(select(User).where(User.id == int(user_id), User.is_active == True))  # noqa: E712
 
 
+async def get_current_seller(
+    user: Annotated[User, Depends(get_current_user)],
+) -> User:
+    """Sotuvchi sifatida kira oladigan endpointlar uchun.
+
+    Talab: user.is_active=True AND (
+        user.is_superuser=True
+        OR (user.account_type='seller' AND user.seller_verified=True)
+    )
+    """
+    if not user.is_active:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Hisob aktiv emas")
+    if user.is_superuser:
+        return user
+    if user.account_type == "seller" and user.seller_verified:
+        return user
+    raise HTTPException(status.HTTP_403_FORBIDDEN, "Sotuvchi sifatida tasdiqlanmagan")
+
+
 CurrentUser = Annotated[User, Depends(get_current_user)]
 OptionalUser = Annotated[User | None, Depends(get_optional_user)]
+CurrentSeller = Annotated[User, Depends(get_current_seller)]
 DB = Annotated[AsyncSession, Depends(get_db)]
