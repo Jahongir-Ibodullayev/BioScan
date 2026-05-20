@@ -20,6 +20,16 @@ class SpeciesList(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class SpeciesPhotoOut(BaseModel):
+    url: str
+    attribution: str = ""
+    license_code: str = ""
+    source: str = "inat"
+    is_default: bool = False
+
+    model_config = {"from_attributes": True}
+
+
 class SpeciesDetail(SpeciesList):
     description: str = ""
     habitat: str = ""
@@ -38,6 +48,7 @@ class SpeciesDetail(SpeciesList):
     fine_bhm_min: int = 0
     fine_bhm_max: int = 0
     law_article: str = ""
+    photos: list[SpeciesPhotoOut] = []
 
 
 class Paginated(BaseModel):

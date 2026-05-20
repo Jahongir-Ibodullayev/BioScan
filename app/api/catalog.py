@@ -10,7 +10,8 @@ from sqlalchemy import or_, select, func
 from app.api.deps import DB
 from app.db.redis import cache_get, cache_set
 from app.models.species import Species
-from app.schemas.species import SpeciesDetail, SpeciesList, SpeciesListPage
+from app.models.species_photo import SpeciesPhoto
+from app.schemas.species import SpeciesDetail, SpeciesList, SpeciesListPage, SpeciesPhotoOut
 
 router = APIRouter(prefix="/species", tags=["species"])
 
@@ -19,7 +20,7 @@ CACHE_TTL = 600  # 10 daqiqa
 
 def _cache_key(path: str, qs: str) -> str:
     raw = f"{path}?{qs}"
-    return f"species:v3:{hashlib.md5(raw.encode()).hexdigest()}"
+    return f"species:v4:{hashlib.md5(raw.encode()).hexdigest()}"
 
 
 @router.get("/", response_model=SpeciesListPage)
@@ -113,7 +114,19 @@ async def species_detail(
     sp = await db.scalar(select(Species).where(Species.slug == slug))
     if not sp:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Tur topilmadi")
-    result = SpeciesDetail.model_validate(sp)
+
+    photos_stmt = (
+        select(SpeciesPhoto)
+        .where(SpeciesPhoto.species_id == sp.id)
+        .order_by(SpeciesPhoto.is_default.desc(), SpeciesPhoto.ordering, SpeciesPhoto.id)
+    )
+    photos = (await db.scalars(photos_stmt)).all()
+    photos_out = [SpeciesPhotoOut.model_validate(p) for p in photos]
+
+    base = SpeciesDetail.model_validate(sp).model_dump()
+    base["photos"] = [p.model_dump() for p in photos_out]
+    result = SpeciesDetail(**base)
+
     await cache_set(key, json.loads(result.model_dump_json()), CACHE_TTL)
     response.headers["X-Cache"] = "MISS"
     return result
