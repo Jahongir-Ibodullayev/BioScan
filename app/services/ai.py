@@ -49,7 +49,8 @@ async def identify_species_from_image(image_bytes: bytes, mime: str = "image/jpe
     Return: {found, name, latin, category, summary, description, ...} yoki
             {found: False, reason: "..."}
     """
-    if not settings.OPENROUTER_API_KEY:
+    # Groq vision birinchi (ishonchli), OpenRouter fallback
+    if not (settings.GROQ_API_KEY or settings.OPENROUTER_API_KEY):
         return {"found": False, "reason": "AI mavjud emas"}
 
     b64 = base64.b64encode(image_bytes).decode()
@@ -63,16 +64,25 @@ async def identify_species_from_image(image_bytes: bytes, mime: str = "image/jpe
         "Agar rasmda tur ko'rinmasa: {\"found\": false, \"reason\": \"...\"}. Faqat o'zbek tilida yozing."
     )
 
+    # Provider tanlash: Groq → OpenRouter fallback (model 404 muammosi)
+    if settings.GROQ_API_KEY:
+        api_url = "https://api.groq.com/openai/v1/chat/completions"
+        api_key = settings.GROQ_API_KEY
+        vision_model = "llama-3.2-90b-vision-preview"
+    else:
+        api_url = f"{settings.OPENROUTER_BASE}/chat/completions"
+        api_key = settings.OPENROUTER_API_KEY
+        vision_model = "meta-llama/llama-3.2-11b-vision-instruct:free"
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
             r = await client.post(
-                f"{settings.OPENROUTER_BASE}/chat/completions",
+                api_url,
                 headers={
-                    "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+                    "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json",
                 },
                 json={
-                    "model": settings.OPENROUTER_VISION_MODEL,
+                    "model": vision_model,
                     "messages": [
                         {
                             "role": "user",
@@ -84,7 +94,6 @@ async def identify_species_from_image(image_bytes: bytes, mime: str = "image/jpe
                     ],
                     "max_tokens": 700,
                     "temperature": 0.2,
-                    "response_format": {"type": "json_object"},
                 },
             )
             r.raise_for_status()
