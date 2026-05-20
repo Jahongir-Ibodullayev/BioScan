@@ -11,6 +11,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.session import _get_sessionmaker
 from app.models.species import Species
 from app.models.species_photo import SpeciesPhoto
 
@@ -244,40 +245,67 @@ async def enrich_species(
 async def enrich_many(
     species_ids: list[int], db: AsyncSession, *, concurrency: int = 4
 ) -> list[EnrichResult]:
-    """Bulk enrichment with concurrency limit and httpx client reuse."""
+    """Bulk enrichment — har bir task o'z AsyncSession'iga ega.
+
+    AsyncSession concurrent-safe emas — bitta sessiyani ko'p task'da
+    ishlatish IllegalStateChangeError keltirib chiqaradi. Shuning uchun
+    `_get_sessionmaker()` orqali har bir task uchun yangi sessiya ochamiz.
+    `db` parametri faqat species ro'yxatini boshlang'ich olish uchun ishlatiladi.
+    """
     if not species_ids:
         return []
 
+    # Asosiy `db` sessiyasida species'larni topamiz (ID + latin uchun).
     rows = (
         await db.scalars(select(Species).where(Species.id.in_(species_ids)))
     ).all()
-    by_id = {s.id: s for s in rows}
+    by_id = {s.id: (s.id, s.latin or "") for s in rows}
 
     results: list[EnrichResult] = []
     sem = asyncio.Semaphore(max(1, concurrency))
+    sm = _get_sessionmaker()
 
     async with httpx.AsyncClient(timeout=12.0) as client:
 
-        async def _task(sp: Species) -> EnrichResult:
+        async def _task(sid: int, latin: str) -> EnrichResult:
             async with sem:
-                try:
-                    return await _enrich_one(sp, db, client, replace=False)
-                except Exception as e:  # noqa: BLE001 — log va davom etish
-                    log.exception("enrich_many failed for species=%s", sp.id)
-                    await db.rollback()
-                    return EnrichResult(
-                        species_id=sp.id,
-                        latin=sp.latin or "",
-                        taxon_id=None,
-                        photos_added=0,
-                        default_set=False,
-                        error=f"exception: {e.__class__.__name__}",
-                    )
+                # Har bir task — yangi sessiya. Task ichida species'ni qaytadan yuklaymiz.
+                async with sm() as task_db:
+                    try:
+                        sp = await task_db.scalar(
+                            select(Species).where(Species.id == sid)
+                        )
+                        if sp is None:
+                            return EnrichResult(
+                                species_id=sid,
+                                latin=latin,
+                                taxon_id=None,
+                                photos_added=0,
+                                default_set=False,
+                                error="species not found",
+                            )
+                        return await _enrich_one(
+                            sp, task_db, client, replace=False
+                        )
+                    except Exception as e:  # noqa: BLE001
+                        log.exception("enrich_many failed for species=%s", sid)
+                        try:
+                            await task_db.rollback()
+                        except Exception:  # noqa: BLE001
+                            pass
+                        return EnrichResult(
+                            species_id=sid,
+                            latin=latin,
+                            taxon_id=None,
+                            photos_added=0,
+                            default_set=False,
+                            error=f"exception: {e.__class__.__name__}",
+                        )
 
         tasks = []
         for sid in species_ids:
-            sp = by_id.get(sid)
-            if sp is None:
+            entry = by_id.get(sid)
+            if entry is None:
                 results.append(
                     EnrichResult(
                         species_id=sid,
@@ -289,7 +317,7 @@ async def enrich_many(
                     )
                 )
                 continue
-            tasks.append(_task(sp))
+            tasks.append(_task(*entry))
 
         if tasks:
             done = await asyncio.gather(*tasks)
