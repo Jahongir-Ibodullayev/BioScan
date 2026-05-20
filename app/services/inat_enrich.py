@@ -21,7 +21,8 @@ INAT_BASE = "https://api.inaturalist.org/v1"
 UZ_PLACE_ID = 109842  # iNaturalist O'zbekiston place_id
 
 # Pauza har bir tashqi so'rovdan keyin (rate-limit hurmat).
-_POLITE_SLEEP_SEC = 0.1
+# iNat soft limit: 100 req/min = ~1.7/sec. 0.7s pauza = ~85 req/min, xavfsiz.
+_POLITE_SLEEP_SEC = 0.7
 
 
 @dataclass
@@ -37,16 +38,30 @@ class EnrichResult:
 async def _http_get(
     client: httpx.AsyncClient, url: str, params: dict | None = None
 ) -> dict | None:
-    """Single GET with timeout + 1 retry."""
-    for attempt in range(2):
+    """GET with retry for transient errors (429, 5xx, network)."""
+    for attempt in range(4):
         try:
-            r = await client.get(url, params=params, timeout=12.0)
+            r = await client.get(url, params=params, timeout=15.0)
             if r.status_code == 200:
                 return r.json()
-        except (httpx.RequestError, httpx.TimeoutException):
-            if attempt == 0:
-                await asyncio.sleep(0.5)
+            # Rate limit / server error — exponential backoff (1s, 4s, 13s)
+            if r.status_code == 429 or r.status_code >= 500:
+                if attempt < 3:
+                    delay = (3 ** attempt) + 1.0
+                    log.warning(
+                        "iNat HTTP %s for %s, retry %d in %.1fs",
+                        r.status_code, url, attempt + 1, delay,
+                    )
+                    await asyncio.sleep(delay)
+                    continue
+            log.warning("iNat HTTP %s for %s — giving up", r.status_code, url)
+            return None
+        except (httpx.RequestError, httpx.TimeoutException) as e:
+            if attempt < 3:
+                await asyncio.sleep(1.0 + attempt)
                 continue
+            log.warning("iNat network error for %s: %s", url, e)
+            return None
     return None
 
 
