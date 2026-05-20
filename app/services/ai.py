@@ -12,44 +12,34 @@ from app.core.config import settings
 log = logging.getLogger(__name__)
 
 
-async def openrouter_chat(
-    prompt: str,
-    system: str = "",
-    max_tokens: int = 600,
-    temperature: float = 0.4,
-    model: str | None = None,
-) -> str:
-    """OpenRouter — chat completion (asinxron)."""
-    if not settings.OPENROUTER_API_KEY:
-        return "Hozir javob bera olmadim — API kalit yo'q."
-
-    model = model or settings.OPENROUTER_CHAT_MODEL
-    messages = []
-    if system:
-        messages.append({"role": "system", "content": system})
-    messages.append({"role": "user", "content": prompt})
-
+async def _provider(url: str, key: str, model: str, msgs: list, mt: int, tp: float) -> str | None:
+    if not key:
+        return None
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            r = await client.post(
-                f"{settings.OPENROUTER_BASE}/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": model,
-                    "messages": messages,
-                    "max_tokens": max_tokens,
-                    "temperature": temperature,
-                },
-            )
+        async with httpx.AsyncClient(timeout=30.0) as c:
+            r = await c.post(url, headers={"Authorization": f"Bearer {key}"},
+                             json={"model": model, "messages": msgs, "max_tokens": mt, "temperature": tp})
             r.raise_for_status()
-            data = r.json()
-        return data["choices"][0]["message"]["content"].strip()
-    except (httpx.HTTPError, KeyError, IndexError) as e:
-        log.warning("openrouter chat failed: %s", e)
-        return "Hozir javob bera olmadim — qaytadan urinib ko'ring."
+            return r.json()["choices"][0]["message"]["content"].strip()
+    except Exception as e:
+        log.warning("provider %s/%s failed: %s", url.split("/")[2], model, e)
+        return None
+
+
+async def openrouter_chat(prompt: str, system: str = "", max_tokens: int = 600,
+                          temperature: float = 0.4, model: str | None = None) -> str:
+    """Groq (asosiy) → OpenRouter (fallback). OpenRouter eski model'lar 404."""
+    msgs = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": prompt}]
+    # Groq — Llama 3.3 70B versatile (ishonchli)
+    txt = await _provider("https://api.groq.com/openai/v1/chat/completions",
+                          settings.GROQ_API_KEY, "llama-3.3-70b-versatile", msgs, max_tokens, temperature)
+    if txt: return txt
+    # OpenRouter fallback — bepul model
+    txt = await _provider(f"{settings.OPENROUTER_BASE}/chat/completions",
+                          settings.OPENROUTER_API_KEY, "meta-llama/llama-3.1-70b-instruct:free",
+                          msgs, max_tokens, temperature)
+    if txt: return txt
+    return "Hozir javob bera olmadim — qaytadan urinib ko'ring."
 
 
 async def identify_species_from_image(image_bytes: bytes, mime: str = "image/jpeg") -> dict:
