@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Optional
 
 import httpx
 from fastapi import APIRouter, Query
@@ -19,7 +20,7 @@ GBIF_BASE = "https://api.gbif.org/v1"
 WIKI_BASE_UZ = "https://uz.wikipedia.org/api/rest_v1"
 
 
-async def _cached_get(url: str, ttl: int = 3600, **kwargs) -> dict | None:
+async def _cached_get(url: str, ttl: int = 3600, **kwargs) -> Optional[dict]:
     key = f"ext-api:{url}:{httpx.QueryParams(kwargs)}"
     hit = await cache_get(key)
     if hit is not None:
@@ -161,9 +162,9 @@ async def taxon_detail(taxon_id: int, locale: str = "uz") -> dict:
 @router.get("/observations/")
 async def search_observations(
     taxon_id: int = Query(...),
-    lat: float | None = None,
-    lng: float | None = None,
-    radius: int | None = None,
+    lat: Optional[float] = None,
+    lng: Optional[float] = None,
+    radius: Optional[int] = None,
     place: str = "uz",
     per_page: int = Query(30, ge=1, le=100),
 ) -> dict:

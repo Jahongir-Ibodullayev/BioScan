@@ -4,6 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
 from sqlalchemy import select
+from typing import Optional
 
 from app.api.deps import DB
 from app.models.mapdata import MapMarker
@@ -28,14 +29,14 @@ class MarkerOut(BaseModel):
 @router.get("/markers/")
 async def list_markers(
     db: DB,
-    type: str | None = None,
+    type: Optional[str] = None,
     # Webapp + Flutter: min_lat/max_lat/min_lng/max_lng
-    min_lat: float | None = None,
-    max_lat: float | None = None,
-    min_lng: float | None = None,
-    max_lng: float | None = None,
+    min_lat: Optional[float] = None,
+    max_lat: Optional[float] = None,
+    min_lng: Optional[float] = None,
+    max_lng: Optional[float] = None,
     # Eski: bbox="a,b,c,d"
-    bbox: str | None = Query(None),
+    bbox: Optional[str] = Query(None),
 ) -> dict:
     stmt = select(MapMarker).where(MapMarker.active == True)  # noqa: E712
     if type:

@@ -36,8 +36,8 @@ class EnrichResult:
 
 
 async def _http_get(
-    client: httpx.AsyncClient, url: str, params: dict | None = None
-) -> dict | None:
+    client: httpx.AsyncClient, url: str, params: Optional[dict] = None
+) -> Optional[dict]:
     """GET with retry for transient errors (429, 5xx, network)."""
     for attempt in range(4):
         try:

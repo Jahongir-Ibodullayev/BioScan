@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
+from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +13,7 @@ from .ai import openrouter_chat
 from .weather import average_soil_temp_next_days, get_30day_forecast
 
 
-async def find_region(db: AsyncSession, lat: float, lon: float) -> Region | None:
+async def find_region(db: AsyncSession, lat: float, lon: float) -> Optional[Region]:
     rows = (await db.scalars(select(Region))).all()
     for r in rows:
         if r.contains(lat, lon):
@@ -20,7 +21,7 @@ async def find_region(db: AsyncSession, lat: float, lon: float) -> Region | None
     return None
 
 
-def best_plant_date(crop: Crop, region: Region | None, forecast: dict | None) -> date:
+def best_plant_date(crop: Crop, region: Optional[Region], forecast: Optional[dict]) -> date:
     today = date.today()
     avg_soil = average_soil_temp_next_days(forecast or {})
 
@@ -64,7 +65,7 @@ def watering_schedule(crop: Crop, irrigation: str) -> list[dict]:
     return [{"week": 1, "frequency_days": 0, "liters_per_m2": 0}]
 
 
-async def _ai_explanation(crop: Crop, region: Region | None, irrigation: str,
+async def _ai_explanation(crop: Crop, region: Optional[Region], irrigation: str,
                           experience: str, plant_date: date) -> str:
     region_slug = region.slug if region else "x"
     cache_key = f"crop-advice:ai:v2:{crop.slug}:{region_slug}:{irrigation}:{experience}"
@@ -97,7 +98,7 @@ async def build_advice(
     lat: float,
     lon: float,
     irrigation: str,
-    plot_size_m2: int | None = None,
+    plot_size_m2: Optional[int] = None,
     experience: str = "beginner",
 ) -> dict:
     from datetime import datetime as _dt

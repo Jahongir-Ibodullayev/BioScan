@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 import json
+from typing import Optional
 
 import redis.asyncio as aioredis
 
 from app.core.config import settings
 
-_pool: aioredis.Redis | None = None
+_pool: Optional[aioredis.Redis] = None
 
 
 def get_redis() -> aioredis.Redis:

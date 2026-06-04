@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request, Response, status
 from sqlalchemy import or_, select, func
@@ -28,16 +29,16 @@ async def list_species(
     request: Request,
     response: Response,
     db: DB,
-    category: str | None = None,
-    red_book: bool | None = None,
-    iucn: str | None = None,
-    region: str | None = None,
-    halal: str | None = None,
-    medicinal: bool | None = None,
-    honey: bool | None = None,
-    edible: bool | None = None,
-    livestock_toxic: str | None = None,
-    search: str | None = Query(None, alias="search"),
+    category: Optional[str] = None,
+    red_book: Optional[bool] = None,
+    iucn: Optional[str] = None,
+    region: Optional[str] = None,
+    halal: Optional[str] = None,
+    medicinal: Optional[bool] = None,
+    honey: Optional[bool] = None,
+    edible: Optional[bool] = None,
+    livestock_toxic: Optional[str] = None,
+    search: Optional[str] = Query(None, alias="search"),
     ordering: str = "name",
     page: int = 1,
     page_size: int = 20,

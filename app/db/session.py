@@ -6,6 +6,7 @@ Test'lar paytida `DATABASE_URL` environment'ni o'rnatib qo'ying.
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
@@ -17,8 +18,8 @@ class Base(DeclarativeBase):
     """Barcha modellar shu Base'dan meros oladi."""
 
 
-_engine: AsyncEngine | None = None
-_SessionLocal: async_sessionmaker[AsyncSession] | None = None
+_engine: Optional[AsyncEngine] = None
+_SessionLocal: Optional[async_sessionmaker[AsyncSession]] = None
 
 
 def _build_engine() -> AsyncEngine:

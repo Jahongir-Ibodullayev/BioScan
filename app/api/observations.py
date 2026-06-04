@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import secrets
 from datetime import datetime
+from typing import Optional
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import Response
@@ -87,7 +88,7 @@ async def list_my_observations(
 @router.get("/public/")
 async def public_feed(
     db: DB,
-    bbox: str | None = None,
+    bbox: Optional[str] = None,
     limit: int = Query(200, ge=1, le=500),
 ) -> dict:
     stmt = (
@@ -117,10 +118,10 @@ async def scan_image(
     photo: UploadFile = File(...),
     # Webapp + Flutter ikkalasi `latitude`/`longitude` yuborishadi.
     # `lat`/`lng` ham qabul qilamiz — eski client'lar buzilmasin.
-    latitude: float | None = Form(None),
-    longitude: float | None = Form(None),
-    lat: float | None = Form(None),
-    lng: float | None = Form(None),
+    latitude: Optional[float] = Form(None),
+    longitude: Optional[float] = Form(None),
+    lat: Optional[float] = Form(None),
+    lng: Optional[float] = Form(None),
 ) -> dict:
     """AI tur aniqlash — Vision API. Auth ixtiyoriy. Rate: configured per-min."""
     await check_scan_limit(request, user)
@@ -191,10 +192,10 @@ async def scan_image(
 
 
 class ObservationIn(BaseModel):
-    species_slug: str | None = None
+    species_slug: Optional[str] = None
     note: str = ""
-    latitude: float | None = None
-    longitude: float | None = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     place_name: str = ""
 
 

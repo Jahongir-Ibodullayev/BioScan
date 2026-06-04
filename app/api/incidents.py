@@ -8,6 +8,7 @@ from __future__ import annotations
 import os
 import secrets
 from pathlib import Path
+from typing import Optional
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, select
@@ -46,8 +47,8 @@ def _to_out(i: Incident, reporter_name: str = "") -> dict:
 async def list_incidents(
     db: DB,
     user: OptionalUser,
-    category: str | None = None,
-    severity: str | None = None,
+    category: Optional[str] = None,
+    severity: Optional[str] = None,
     mine: bool = False,
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=500),
@@ -78,10 +79,10 @@ async def create_incident(
     category: str = Form(...),
     severity: str = Form("orta"),
     note: str = Form(""),
-    latitude: float | None = Form(None),
-    longitude: float | None = Form(None),
+    latitude: Optional[float] = Form(None),
+    longitude: Optional[float] = Form(None),
     place_name: str = Form(""),
-    photo: UploadFile | None = File(None),
+    photo: Optional[UploadFile] = File(None),
 ) -> dict:
     """multipart/form-data — webapp va Flutter shunday yuborishadi."""
     code = secrets.token_hex(4).upper()

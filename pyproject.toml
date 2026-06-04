@@ -3,7 +3,7 @@ name = "bioscan-fastapi"
 version = "1.0.0"
 description = "BioScan AI nature/species identification — async FastAPI backend"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.9"
 license = { text = "Proprietary" }
 authors = [{ name = "Otabek Qayumov", email = "otabekqayumov762@gmail.com" }]
 
@@ -38,6 +38,7 @@ dev = [
     "pytest-asyncio==1.2.0",
     "pytest-cov==6.0.0",
     "aiosqlite==0.20.0",
+    "sqladmin==0.20.1",
     "pyflakes==3.4.0",
     "autoflake==2.3.1",
 ]

@@ -13,6 +13,7 @@ import argparse
 import asyncio
 import sys
 import time
+from typing import Optional
 
 from sqlalchemy import select
 
@@ -21,7 +22,7 @@ from app.models.species import Species
 from app.services.inat_enrich import enrich_many
 
 
-def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+def _parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="enrich_inat",
         description="iNaturalist'dan turlarga rasm va metama'lumot to'playdi.",
@@ -131,7 +132,7 @@ async def _run(args: argparse.Namespace) -> int:
         return 1 if errors else 0
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: Optional[list[str]] = None) -> int:
     args = _parse_args(argv)
     try:
         return asyncio.run(_run_with_dispose(args))

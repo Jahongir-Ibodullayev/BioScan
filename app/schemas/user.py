@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel
 
@@ -11,7 +12,7 @@ class UserOut(BaseModel):
     phone: str
     full_name: str = ""
     role: str = "Turist"
-    avatar: str | None = None
+    avatar: Optional[str] = None
     locale: str = "uz"
     verified_member: bool = False
     date_joined: datetime
@@ -23,7 +24,7 @@ class LoginRequest(BaseModel):
     # Django'ning SimpleAuthView bilan teng: validatsiya endpoint ichida — 400 qaytaradi
     phone: str = ""
     password: str = ""
-    full_name: str | None = None
+    full_name: Optional[str] = None
 
 
 class TokenPair(BaseModel):
@@ -44,10 +45,10 @@ class RefreshRequest(BaseModel):
 
 class UpdateMeRequest(BaseModel):
     """PATCH /api/auth/me/ — faqat ruxsat etilgan maydonlar."""
-    full_name: str | None = None
-    role: str | None = None
-    locale: str | None = None
-    fcm_token: str | None = None
-    fcm_platform: str | None = None
+    full_name: Optional[str] = None
+    role: Optional[str] = None
+    locale: Optional[str] = None
+    fcm_token: Optional[str] = None
+    fcm_platform: Optional[str] = None
 
     model_config = {"extra": "forbid"}  # noma'lum maydon → 422

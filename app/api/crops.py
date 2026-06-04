@@ -11,6 +11,7 @@ Webapp + Flutter contract:
 from __future__ import annotations
 
 from datetime import date as _date
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from pydantic import BaseModel
@@ -38,7 +39,7 @@ class CropOut(BaseModel):
 
 @router.get("/list/")
 async def list_crops(
-    db: DB, category: str | None = None,
+    db: DB, category: Optional[str] = None,
     page: int = Query(1, ge=1), page_size: int = Query(50, ge=1, le=200),
 ) -> dict:
     base = select(Crop)
@@ -59,7 +60,7 @@ class AdviceIn(BaseModel):
     lat: float
     lon: float
     irrigation: str = "manual"
-    plot_size_m2: int | None = None
+    plot_size_m2: Optional[int] = None
     experience: str = "beginner"
 
 
@@ -78,7 +79,7 @@ async def crop_advice_get(
     lat: float = Query(...),
     lon: float = Query(...),
     irrigation: str = Query("manual"),
-    plot_size_m2: int | None = None,
+    plot_size_m2: Optional[int] = None,
     experience: str = "beginner",
 ) -> dict:
     return await _advice_impl(request, user, db, crop_slug, lat, lon, irrigation, plot_size_m2, experience)
@@ -100,14 +101,14 @@ async def crop_advice_post(
 # ----------------------------------------------------------------------
 class PlanIn(BaseModel):
     # Flutter `crop_slug`, Webapp `crop_id` — ikkalasi qabul qilinadi
-    crop_slug: str | None = None
-    crop_id: int | None = None
+    crop_slug: Optional[str] = None
+    crop_id: Optional[int] = None
     lat: float
     lon: float
     irrigation: str = "manual"
-    plot_size_m2: int | None = None
+    plot_size_m2: Optional[int] = None
     planned_plant_date: str  # YYYY-MM-DD
-    expected_harvest_date: str | None = None
+    expected_harvest_date: Optional[str] = None
     notes: str = ""
     notify: bool = True
 

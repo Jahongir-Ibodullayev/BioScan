@@ -1,13 +1,13 @@
 """Umumiy schemas — Paginated, count, next, previous (DRF bilan teng)."""
 from __future__ import annotations
 
-from typing import TypeVar
+from typing import Optional, TypeVar
 
 
 T = TypeVar("T")
 
 
-def paginated(items: list, total: int | None = None, page: int = 1, page_size: int = 20) -> dict:
+def paginated(items: list, total: Optional[int] = None, page: int = 1, page_size: int = 20) -> dict:
     """DRF Pagination'ga teng `{count, next, previous, results}` qaytaradi.
 
     Webapp va Flutter shu shape'ni kutadi (Paginated.fromJson).

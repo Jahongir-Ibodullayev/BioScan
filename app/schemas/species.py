@@ -1,6 +1,8 @@
 """Species — list/detail Pydantic schemas."""
 from __future__ import annotations
 
+from typing import Optional
+
 from pydantic import BaseModel
 
 
@@ -53,8 +55,8 @@ class SpeciesDetail(SpeciesList):
 
 class Paginated(BaseModel):
     count: int
-    next: str | None = None
-    previous: str | None = None
+    next: Optional[str] = None
+    previous: Optional[str] = None
     results: list
 
 

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Optional
 
 from sqlalchemy import Boolean, DateTime, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
@@ -28,7 +29,7 @@ class Species(Base):
     warnings: Mapped[str] = mapped_column(Text, default="")
     first_aid: Mapped[str] = mapped_column(Text, default="")
 
-    image: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    image: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     image_url: Mapped[str] = mapped_column(String(600), default="")
 
     red_book: Mapped[bool] = mapped_column(Boolean, default=False, index=True)

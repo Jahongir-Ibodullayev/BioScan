@@ -12,6 +12,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import select
+from typing import Optional
 
 from app.api.deps import CurrentUser, DB
 from app.core.config import settings
@@ -75,7 +76,7 @@ async def simple_auth(req: LoginRequest, db: DB) -> AuthResponse:
 
 class QuickAuthRequest(BaseModel):
     phone: str
-    full_name: str | None = None
+    full_name: Optional[str] = None
 
 
 @router.post("/quick/", response_model=AuthResponse)

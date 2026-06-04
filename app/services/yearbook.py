@@ -9,6 +9,7 @@ import asyncio
 import io
 from collections import Counter
 from datetime import datetime
+from typing import Optional
 
 import httpx
 from reportlab.lib import colors
@@ -74,7 +75,7 @@ def _draw_cover(c: canvas.Canvas, user_full_name: str, year: int, total: int):
     c.drawString(40, 36, "Tabiat AI yordamchisi · bioscan.uz")
 
 
-def _safe_fetch_image(url: str, max_kb: int = 800) -> bytes | None:
+def _safe_fetch_image(url: str, max_kb: int = 800) -> Optional[bytes]:
     if not url:
         return None
     try:

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import secrets as _s
 from decimal import Decimal
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel
@@ -35,7 +36,7 @@ class CategoryOut(BaseModel):
     description: str = ""
     is_active: bool = True
     order: int = 0
-    parent_id: int | None = None
+    parent_id: Optional[int] = None
     model_config = {"from_attributes": True}
 
 
@@ -47,7 +48,7 @@ from pydantic import field_validator
 _IMG_FALLBACK = "images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=480&q=70"
 
 
-def proxy_image(url: str | None) -> str:
+def proxy_image(url: Optional[str]) -> str:
     if not url:
         return ""
     if url.startswith("data:") or "wsrv.nl" in url:
@@ -67,7 +68,7 @@ class ProductOut(BaseModel):
     short_description: str = ""
     description: str = ""
     price: Decimal
-    discount_price: Decimal | None = None
+    discount_price: Optional[Decimal] = None
     currency: str = "UZS"
     stock_quantity: int = 0
     sku: str = ""
@@ -105,11 +106,11 @@ async def list_categories(db: DB) -> list[dict]:
 @router.get("/products/")
 async def list_products(
     db: DB,
-    category: str | None = None,
+    category: Optional[str] = None,
     # Webapp `search`, Flutter `q` — ikkalasini ham qabul qilamiz
-    search: str | None = None,
-    q: str | None = None,
-    featured: bool | None = None,
+    search: Optional[str] = None,
+    q: Optional[str] = None,
+    featured: Optional[bool] = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ) -> dict:
@@ -165,8 +166,8 @@ class CartAddIn(BaseModel):
 
 class CartUpdateIn(BaseModel):
     # Flutter: item_id (CartItem.id), Webapp: product_id
-    item_id: int | None = None
-    product_id: int | None = None
+    item_id: Optional[int] = None
+    product_id: Optional[int] = None
     quantity: int = 1
 
 
@@ -310,20 +311,20 @@ async def wishlist_remove(wishlist_id: int, user: CurrentUser, db: DB) -> dict:
 # ============================================================================
 class ReviewIn(BaseModel):
     # Webapp `product_id`, Flutter `product` — ikkalasi ham qabul qilinadi
-    product: int | None = None
-    product_id: int | None = None
+    product: Optional[int] = None
+    product_id: Optional[int] = None
     rating: int
     # Webapp `title+body`, Flutter `comment` — moslashuvchan
     title: str = ""
     body: str = ""
-    comment: str | None = None
+    comment: Optional[str] = None
 
 
 @router.get("/reviews/")
 async def list_reviews(
     db: DB,
-    product: int | None = None,
-    product_id: int | None = None,
+    product: Optional[int] = None,
+    product_id: Optional[int] = None,
     page: int = Query(1, ge=1), page_size: int = Query(50, ge=1, le=200),
 ) -> dict:
     pid = product or product_id

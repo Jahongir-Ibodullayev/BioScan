@@ -5,6 +5,7 @@ Django'ning crops/services/weather.py async portasi.
 from __future__ import annotations
 
 import logging
+from typing import Optional
 
 import httpx
 
@@ -15,7 +16,7 @@ log = logging.getLogger(__name__)
 OPEN_METEO_FORECAST = "https://api.open-meteo.com/v1/forecast"
 
 
-async def get_30day_forecast(lat: float, lon: float) -> dict | None:
+async def get_30day_forecast(lat: float, lon: float) -> Optional[dict]:
     """30 kunlik prognoz — 6 soat cache."""
     grid_lat = round(lat * 2) / 2
     grid_lon = round(lon * 2) / 2
@@ -50,7 +51,7 @@ async def get_30day_forecast(lat: float, lon: float) -> dict | None:
         return None
 
 
-def average_soil_temp_next_days(forecast: dict | None, days: int = 7) -> float | None:
+def average_soil_temp_next_days(forecast: Optional[dict], days: int = 7) -> Optional[float]:
     if not forecast or "daily" not in forecast:
         return None
     soil = forecast["daily"].get("soil_temperature_0_to_7cm_max", [])

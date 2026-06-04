@@ -5,6 +5,7 @@ OTPCode olib tashlangan — OTP funksionalligi tugatildi.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Optional
 
 from sqlalchemy import BigInteger, Boolean, DateTime, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
@@ -20,7 +21,7 @@ class User(Base):
 
     # Django AbstractUser
     password: Mapped[str] = mapped_column(String(128))
-    last_login: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_login: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
     first_name: Mapped[str] = mapped_column(String(150), default="")
     last_name: Mapped[str] = mapped_column(String(150), default="")
@@ -33,7 +34,7 @@ class User(Base):
     phone: Mapped[str] = mapped_column(String(20), unique=True)
     full_name: Mapped[str] = mapped_column(String(120), default="")
     role: Mapped[str] = mapped_column(String(40), default="Turist")
-    avatar: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    avatar: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     locale: Mapped[str] = mapped_column(String(5), default="uz")
     verified_member: Mapped[bool] = mapped_column(Boolean, default=False)
 
@@ -44,7 +45,7 @@ class User(Base):
     seller_verified: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Telegram link — bot CRM/notification uchun (OTP emas)
-    telegram_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True, unique=True, index=True)
+    telegram_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True, unique=True, index=True)
     telegram_username: Mapped[str] = mapped_column(String(64), default="")
 
     # FCM push

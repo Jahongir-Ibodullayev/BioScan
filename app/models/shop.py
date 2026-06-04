@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from decimal import Decimal
+from typing import Optional
 
 from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
@@ -17,8 +18,8 @@ class Category(Base):
     id: Mapped[int] = mapped_column(BIGINT_PK, primary_key=True)
     name: Mapped[str] = mapped_column(String(120))
     slug: Mapped[str] = mapped_column(String(140), unique=True)
-    parent_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("shop_category.id", ondelete="CASCADE"), nullable=True)
-    image: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    parent_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("shop_category.id", ondelete="CASCADE"), nullable=True)
+    image: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     description: Mapped[str] = mapped_column(Text, default="")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     order: Mapped[int] = mapped_column(Integer, default=0)
@@ -39,7 +40,7 @@ class Product(Base):
     ai_generated_description: Mapped[bool] = mapped_column(Boolean, default=False)
 
     price: Mapped[Decimal] = mapped_column(Numeric(12, 2))
-    discount_price: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
+    discount_price: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 2), nullable=True)
     currency: Mapped[str] = mapped_column(String(8), default="UZS")
 
     stock_quantity: Mapped[int] = mapped_column(Integer, default=0)
@@ -54,7 +55,7 @@ class Product(Base):
     views_count: Mapped[int] = mapped_column(Integer, default=0)
     sales_count: Mapped[int] = mapped_column(Integer, default=0)
 
-    related_species_id: Mapped[int | None] = mapped_column(
+    related_species_id: Mapped[Optional[int]] = mapped_column(
         BigInteger, ForeignKey("catalog_species.id", ondelete="SET NULL"), nullable=True
     )
 
@@ -86,7 +87,7 @@ class Order(Base):
     shipping_notes: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    delivered_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class OrderItem(Base):

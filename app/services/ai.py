@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import json
 import logging
+from typing import Optional
 
 import httpx
 
@@ -12,7 +13,7 @@ from app.core.config import settings
 log = logging.getLogger(__name__)
 
 
-async def _provider(url: str, key: str, model: str, msgs: list, mt: int, tp: float) -> str | None:
+async def _provider(url: str, key: str, model: str, msgs: list, mt: int, tp: float) -> Optional[str]:
     if not key:
         return None
     try:
@@ -27,7 +28,7 @@ async def _provider(url: str, key: str, model: str, msgs: list, mt: int, tp: flo
 
 
 async def openrouter_chat(prompt: str, system: str = "", max_tokens: int = 600,
-                          temperature: float = 0.4, model: str | None = None) -> str:
+                          temperature: float = 0.4, model: Optional[str] = None) -> str:
     """Groq (asosiy) → OpenRouter (fallback). OpenRouter eski model'lar 404."""
     msgs = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": prompt}]
     # Groq — Llama 3.3 70B versatile (ishonchli)

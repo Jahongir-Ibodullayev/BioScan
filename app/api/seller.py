@@ -161,7 +161,7 @@ async def update_seller_product(
     return SellerProductOut.model_validate(product)
 
 
-@router.delete("/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def delete_seller_product(
     product_id: int,
     db: DB,

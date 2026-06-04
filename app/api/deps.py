@@ -1,7 +1,7 @@
 """FastAPI dependency'lar — current_user, optional_user."""
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Optional
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -16,7 +16,7 @@ bearer = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
-    creds: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
+    creds: Annotated[Optional[HTTPAuthorizationCredentials], Depends(bearer)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> User:
     """Authorization: Bearer <jwt> — yo'q yoki noto'g'ri bo'lsa 401."""
@@ -35,9 +35,9 @@ async def get_current_user(
 
 
 async def get_optional_user(
-    creds: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
+    creds: Annotated[Optional[HTTPAuthorizationCredentials], Depends(bearer)],
     db: Annotated[AsyncSession, Depends(get_db)],
-) -> User | None:
+) -> Optional[User]:
     """Authorization bor bo'lsa user, yo'q bo'lsa None."""
     if not creds or not creds.credentials:
         return None
@@ -70,6 +70,6 @@ async def get_current_seller(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
-OptionalUser = Annotated[User | None, Depends(get_optional_user)]
+OptionalUser = Annotated[Optional[User], Depends(get_optional_user)]
 CurrentSeller = Annotated[User, Depends(get_current_seller)]
 DB = Annotated[AsyncSession, Depends(get_db)]

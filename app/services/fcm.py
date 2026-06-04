@@ -9,6 +9,7 @@ import asyncio
 import logging
 import os
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -40,7 +41,7 @@ def _ensure_app():
         return None
 
 
-def _send_sync(token: str, title: str, body: str, data: dict | None = None) -> bool:
+def _send_sync(token: str, title: str, body: str, data: Optional[dict] = None) -> bool:
     if _ensure_app() is None:
         return False
     try:
@@ -57,7 +58,7 @@ def _send_sync(token: str, title: str, body: str, data: dict | None = None) -> b
         return False
 
 
-def _send_bulk_sync(tokens: list[str], title: str, body: str, data: dict | None = None) -> int:
+def _send_bulk_sync(tokens: list[str], title: str, body: str, data: Optional[dict] = None) -> int:
     if _ensure_app() is None or not tokens:
         return 0
     try:
@@ -78,7 +79,7 @@ def _send_bulk_sync(tokens: list[str], title: str, body: str, data: dict | None 
         return 0
 
 
-async def send_to_user(user: User, title: str, body: str, data: dict | None = None) -> int:
+async def send_to_user(user: User, title: str, body: str, data: Optional[dict] = None) -> int:
     token = (user.fcm_token or "").strip()
     if not token:
         return 0
@@ -88,7 +89,7 @@ async def send_to_user(user: User, title: str, body: str, data: dict | None = No
 
 
 async def broadcast(db: AsyncSession, title: str, body: str,
-                    data: dict | None = None, segment: str | None = None) -> int:
+                    data: Optional[dict] = None, segment: Optional[str] = None) -> int:
     """Hammaga yoki segmentga."""
     stmt = select(User.fcm_token).where(User.fcm_token != "")
     if segment == "active_7d":

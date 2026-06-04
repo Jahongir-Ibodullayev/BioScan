@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query, Response, status
 from sqlalchemy import select, update
@@ -21,12 +22,12 @@ class AdOut(BaseModel):
     body: str
     cta_text: str
     target_url: str
-    picture: str | None = None
+    picture: Optional[str] = None
     duration_seconds: int
     skippable_after: int
 
 
-def _picture(ad: Ad) -> str | None:
+def _picture(ad: Ad) -> Optional[str]:
     if ad.image:
         return f"{settings.MEDIA_URL}{ad.image}"
     return ad.image_url or None

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 from decimal import Decimal
+from typing import Optional
 
 from sqlalchemy import BigInteger, Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
@@ -86,10 +87,10 @@ class CropPlan(Base):
     lat: Mapped[Decimal] = mapped_column(Numeric(8, 4))
     lon: Mapped[Decimal] = mapped_column(Numeric(8, 4))
     irrigation: Mapped[str] = mapped_column(String(20), default="manual")
-    plot_size_m2: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    plot_size_m2: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     planned_plant_date: Mapped[date] = mapped_column(Date)
-    expected_harvest_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    expected_harvest_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     notes: Mapped[str] = mapped_column(Text, default="")
     notify: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)

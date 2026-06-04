@@ -12,6 +12,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy import func, select
+from typing import Optional
 
 from app.api.deps import CurrentUser, DB
 from app.models.chat import Conversation, Message
@@ -28,8 +29,8 @@ SYSTEM_PROMPT = (
 
 class ChatMessage(BaseModel):
     text: str
-    conversation_id: int | None = None
-    species_slug: str | None = None  # Flutter ba'zan yuboradi
+    conversation_id: Optional[int] = None
+    species_slug: Optional[str] = None  # Flutter ba'zan yuboradi
 
 
 def _msg_dict(m: Message) -> dict:
@@ -56,7 +57,7 @@ async def list_conversations(
 
 
 class ConversationIn(BaseModel):
-    title: str | None = None
+    title: Optional[str] = None
 
 
 @router.post("/conversations/", status_code=status.HTTP_201_CREATED)
