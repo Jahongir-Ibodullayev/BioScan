@@ -34,7 +34,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.11"]
+        # fastapi==0.136.1 Requires-Python >=3.10
+        python-version: ["3.10", "3.11", "3.12"]
 
     steps:
       - uses: actions/checkout@v4
@@ -57,14 +58,9 @@ jobs:
         run: python -m pytest tests/ -q --cov=app --cov-report=xml
 
       - name: Upload coverage
-        if: matrix.python-version == '3.11'
+        if: matrix.python-version == '3.12'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-xml
           path: coverage.xml
           retention-days: 7
-
-      - name: Coverage summary
-        if: matrix.python-version == '3.11'
-        run: |
-          python -m pytest tests/ -q --cov=app --cov-report=term-missing || true
