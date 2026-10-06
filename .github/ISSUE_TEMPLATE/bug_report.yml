@@ -1,0 +1,41 @@
+name: 🐛 Bug report
+description: Muammo topdingizmi? Bu yerga yozing.
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Muammo / What happened?
+      description: Nima bo'layapti?
+      placeholder: Qisqacha tavsif...
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Qayta ishga tushirish / Steps to reproduce
+      description: Bosqichma-bosqich
+      placeholder: |
+        1. GET /api/... chaqirdim
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Kutilgan natija / Expected behavior
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Muhit / Environment
+      placeholder: "Python 3.11 · branch main · commit abc1234"
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Loglar / Logs
+      render: shell

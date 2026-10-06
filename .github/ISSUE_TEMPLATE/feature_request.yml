@@ -1,0 +1,38 @@
+name: ✨ Feature request
+description: Yangi imkoniyat taklif qiling.
+title: "[FEATURE] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Tavsif / Description
+      placeholder: Nima qo'shmoqchisiz?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Nega kerak? / Problem it solves
+      placeholder: Qanday muammoni hal qiladi?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Yechim / Proposed solution
+      placeholder: Qanday tasavvur qilasiz?
+  - type: dropdown
+    id: area
+    attributes:
+      label: Soha / Area
+      options:
+        - API
+        - Auth
+        - AI / ML
+        - Performance
+        - DevOps
+        - Docs
+        - Other
+    validations:
+      required: true
