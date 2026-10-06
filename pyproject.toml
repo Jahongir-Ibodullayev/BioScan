@@ -36,7 +36,7 @@ dependencies = [
 dev = [
     "pytest==8.4.2",
     "pytest-asyncio==1.2.0",
-    "pytest-cov==6.0.0",
+    "pytest-cov==7.1.0",
     "aiosqlite==0.20.0",
     "sqladmin==0.20.1",
     "pyflakes==3.4.0",
