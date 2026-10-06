@@ -37,7 +37,7 @@ class Observation(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     # Async relationship — N+1 oldini olish uchun har doim selectinload(Observation.species) bilan oling
-    species: Mapped[Optional["Species"]] = relationship("Species", lazy="raise", foreign_keys=[species_id])  # noqa: F821
+    species: Mapped[Optional[Species]] = relationship("Species", lazy="raise", foreign_keys=[species_id])  # noqa: F821
 
 
 class TFLiteModel(Base):

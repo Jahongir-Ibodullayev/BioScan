@@ -5,12 +5,12 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query, Response, status
+from pydantic import BaseModel
 from sqlalchemy import select, update
 
 from app.api.deps import DB
 from app.core.config import settings
 from app.models.ads import Ad
-from pydantic import BaseModel
 
 router = APIRouter(prefix="/ads", tags=["ads"])
 

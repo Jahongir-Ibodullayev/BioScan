@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.redis import cache_get, cache_set
 from app.models.crops import Crop, Region
+
 from .ai import openrouter_chat
 from .weather import average_soil_temp_next_days, get_30day_forecast
 
@@ -117,9 +118,12 @@ async def build_advice(
     schedule = watering_schedule(crop, irrigation)
 
     tips = []
-    if crop.soil_prep_uz: tips.append(crop.soil_prep_uz[:200])
-    if crop.planting_method_uz: tips.append(crop.planting_method_uz[:200])
-    if crop.care_tips_uz: tips.append(crop.care_tips_uz[:200])
+    if crop.soil_prep_uz:
+        tips.append(crop.soil_prep_uz[:200])
+    if crop.planting_method_uz:
+        tips.append(crop.planting_method_uz[:200])
+    if crop.care_tips_uz:
+        tips.append(crop.care_tips_uz[:200])
 
     warnings = []
     if crop.frost_sensitive:

@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 
-from app.api.deps import CurrentUser, DB
+from app.api.deps import DB, CurrentUser
 from app.models.saved import SavedSpecies
 from app.models.species import Species
 from app.schemas.common import paginated

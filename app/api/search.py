@@ -6,11 +6,11 @@ from typing import Optional
 
 import httpx
 from fastapi import APIRouter, Query
+from sqlalchemy import select
 
 from app.api.deps import DB
 from app.db.redis import cache_get, cache_set
 from app.models.species import Species
-from sqlalchemy import select
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/search", tags=["search"])

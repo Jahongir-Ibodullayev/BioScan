@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import pytest
-from sqlalchemy import select
 
 from app.models.mapdata import MapMarker
 from app.models.species import Species

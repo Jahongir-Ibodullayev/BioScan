@@ -12,9 +12,9 @@ from pathlib import Path
 # Skript .vscode/ ichida — workspace root'ni import yo'liga qo'shamiz
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import app.models  # barcha modellarni Base.metadata'ga ro'yxatdan o'tkazadi  # noqa: E402,F401
 from sqlalchemy.ext.asyncio import create_async_engine
 
+import app.models  # barcha modellarni Base.metadata'ga ro'yxatdan o'tkazadi  # noqa: E402,F401
 from app.core.config import settings
 from app.db.session import Base
 

@@ -34,12 +34,14 @@ async def openrouter_chat(prompt: str, system: str = "", max_tokens: int = 600,
     # Groq — Llama 3.3 70B versatile (ishonchli)
     txt = await _provider("https://api.groq.com/openai/v1/chat/completions",
                           settings.GROQ_API_KEY, "llama-3.3-70b-versatile", msgs, max_tokens, temperature)
-    if txt: return txt
+    if txt:
+        return txt
     # OpenRouter fallback — bepul model
     txt = await _provider(f"{settings.OPENROUTER_BASE}/chat/completions",
                           settings.OPENROUTER_API_KEY, "meta-llama/llama-3.1-70b-instruct:free",
                           msgs, max_tokens, temperature)
-    if txt: return txt
+    if txt:
+        return txt
     return "Hozir javob bera olmadim — qaytadan urinib ko'ring."
 
 

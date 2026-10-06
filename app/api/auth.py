@@ -9,12 +9,13 @@ OTP TO'LIQ OLIB TASHLANGAN — faqat telefon + parol login.
 """
 from __future__ import annotations
 
+from typing import Optional
+
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import select
-from typing import Optional
 
-from app.api.deps import CurrentUser, DB
+from app.api.deps import DB, CurrentUser
 from app.core.config import settings
 from app.core.security import (
     create_access_token,

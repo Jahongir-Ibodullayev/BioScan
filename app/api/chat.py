@@ -9,12 +9,13 @@ Webapp + Flutter formatlari bilan moslashuvchan:
 """
 from __future__ import annotations
 
+from typing import Optional
+
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy import func, select
-from typing import Optional
 
-from app.api.deps import CurrentUser, DB
+from app.api.deps import DB, CurrentUser
 from app.models.chat import Conversation, Message
 from app.schemas.common import paginated
 from app.services.ai import openrouter_chat

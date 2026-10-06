@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import pytest
-from sqlalchemy import insert
 
 from app.models.species import Species
 from tests.conftest import _TestSession

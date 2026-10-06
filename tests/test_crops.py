@@ -1,7 +1,6 @@
 """Crops tests — Open-Meteo va AI'ni stub qilamiz."""
 from __future__ import annotations
 
-from datetime import date
 from decimal import Decimal
 
 import pytest

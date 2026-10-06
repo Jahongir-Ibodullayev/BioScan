@@ -5,9 +5,9 @@ from decimal import Decimal
 
 import pytest
 
+from app.core.security import hash_password
 from app.models.shop import Category, Product
 from app.models.user import User
-from app.core.security import hash_password
 from tests.conftest import _TestSession
 
 

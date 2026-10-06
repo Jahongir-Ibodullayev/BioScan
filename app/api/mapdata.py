@@ -1,10 +1,11 @@
 """Mapdata — /api/map/markers/."""
 from __future__ import annotations
 
+from typing import Optional
+
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
 from sqlalchemy import select
-from typing import Optional
 
 from app.api.deps import DB
 from app.models.mapdata import MapMarker
@@ -51,7 +52,7 @@ async def list_markers(
     # 2) Eski bbox formatini ham qo'llab quvvatlaymiz
     if bbox:
         try:
-            a, b, c, d = [float(x) for x in bbox.split(",")[:4]]
+            a, b, c, d = (float(x) for x in bbox.split(",")[:4])
             stmt = stmt.where(
                 MapMarker.latitude.between(min(a, c), max(a, c)),
                 MapMarker.longitude.between(min(b, d), max(b, d)),

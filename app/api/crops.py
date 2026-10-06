@@ -17,7 +17,7 @@ from fastapi import APIRouter, HTTPException, Query, Request, status
 from pydantic import BaseModel
 from sqlalchemy import func, select
 
-from app.api.deps import CurrentUser, DB, OptionalUser
+from app.api.deps import DB, CurrentUser, OptionalUser
 from app.core.ratelimit import check_advice_limit
 from app.models.crops import Crop, CropPlan
 from app.schemas.common import paginated
@@ -155,8 +155,10 @@ async def create_plan(payload: PlanIn, user: CurrentUser, db: DB) -> dict:
 
     try:
         planned = _date.fromisoformat(payload.planned_plant_date)
-    except ValueError:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "planned_plant_date YYYY-MM-DD formatda")
+    except ValueError as exc:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, "planned_plant_date YYYY-MM-DD formatda"
+        ) from exc
 
     harvest = None
     if payload.expected_harvest_date:

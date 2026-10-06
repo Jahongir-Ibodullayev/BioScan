@@ -14,7 +14,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
-from app.api import ads, auth, catalog, chat, crops, incidents, mapdata, observations, saved, search, seller as seller_router, shop
+from app.api import ads, auth, catalog, chat, crops, incidents, mapdata, observations, saved, search, shop
+from app.api import seller as seller_router
 from app.core.config import settings
 from app.db.session import dispose_engine
 from app.middleware.cache_control import EdgeCacheMiddleware, SecurityHeadersMiddleware
@@ -29,6 +30,7 @@ async def lifespan(app: FastAPI):
     # DB warmup
     try:
         from sqlalchemy import text
+
         from app.db.session import _get_sessionmaker
         sm = _get_sessionmaker()
         async with sm() as db:

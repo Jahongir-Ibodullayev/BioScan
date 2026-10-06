@@ -8,7 +8,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.136-009688?style=flat-square&logo=fastapi&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-41%2F41%20%E2%9C%85-22c55e?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-34%2F34%20%E2%9C%85-22c55e?style=flat-square)
 ![License](https://img.shields.io/badge/license-Proprietary-6b7280?style=flat-square)
 
 [![CI](https://github.com/Jahongir-Ibodullayev/BioScan/actions/workflows/ci.yml/badge.svg)](https://github.com/Jahongir-Ibodullayev/BioScan/actions/workflows/ci.yml)
@@ -28,7 +28,7 @@ BioScan backend is a **fully asynchronous, production-grade** port of the origin
 | `POST /api/auth/login/` | 25–40 ms | **8–15 ms** | **2.5×** |
 | `GET /api/ads/active/` | 6–10 ms | **2–3 ms** | **3×** |
 | Throughput (1 worker) | ~150 req/s | **~600 req/s** | **4×** |
-| Test suite | — | **41/41 ✅** | — |
+| Test suite | — | **34/34 ✅** | — |
 
 > AI endpoints (`/observations/scan/`, `/chat/send/`) are latency-bound by the
 > upstream LLM provider — network time dominates, framework choice does not.
@@ -87,7 +87,7 @@ Run the test suite (in-memory SQLite, no external services needed):
 
 ```bash
 ./venv/bin/python -m pytest tests/ -q
-# 41 passed in ~4s
+# 34 passed in ~3s
 ```
 
 Start the dev server:
@@ -173,7 +173,7 @@ BioScan/
 ├── alembic/          NEW tables only (Django owns the legacy ones)
 ├── deploy/           nginx.conf + systemd units
 ├── scripts/          env migration helpers
-├── tests/            pytest-asyncio — 41 tests
+├── tests/            pytest-asyncio — 34 tests
 ├── gunicorn.conf.py
 ├── Procfile
 └── pyproject.toml    deps, ruff, pytest, coverage config
@@ -203,17 +203,16 @@ upstream bioscan_backend {
 ```
 
 ```
-tests/test_ads.py ............                                        [  7%]
-tests/test_auth.py ...........                                        [ 24%]
-tests/test_chat.py .......                                             [ 31%]
-tests/test_crops.py ......                                             [ 41%]
-tests/test_health.py .....                                             [ 48%]
-tests/test_map_saved.py ......                                         [ 58%]
-tests/test_observations.py .....                                       [ 65%]
-tests/test_otp.py ........                                              [ 82%]
-tests/test_shop.py ......                                              [ 90%]
-tests/test_species.py ......                                           [100%]
-============================== 41 passed in 4.06s ==============================
+tests/test_ads.py ...                                                     [  8%]
+tests/test_auth.py .......                                                [ 29%]
+tests/test_chat.py ...                                                    [ 38%]
+tests/test_crops.py ....                                                  [ 50%]
+tests/test_health.py ...                                                  [ 58%]
+tests/test_map_saved.py ....                                              [ 70%]
+tests/test_observations.py ...                                            [ 79%]
+tests/test_shop.py ...                                                    [ 88%]
+tests/test_species.py ....                                                [100%]
+============================== 34 passed in 3.02s ==============================
 ```
 
 ---

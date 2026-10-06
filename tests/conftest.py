@@ -9,15 +9,12 @@ os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 os.environ.setdefault("REDIS_URL", "redis://invalid-host-for-testing:6379/15")
 os.environ.setdefault("DEBUG", "true")
 
-import asyncio
-import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.db.session import Base, get_db
 from app.main import app
-
 
 # In-memory shared SQLite — har bir test uchun yangi
 _test_engine = create_async_engine(

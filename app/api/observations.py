@@ -15,25 +15,21 @@ from typing import Optional
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import Response
-
 from pydantic import BaseModel
 from slugify import slugify
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
-from app.schemas.common import paginated
-
-from app.api.deps import CurrentUser, DB, OptionalUser
+from app.api.deps import DB, CurrentUser, OptionalUser
 from app.core.config import settings
+from app.core.ratelimit import check_scan_limit
 from app.models.observation import Observation
 from app.models.species import Species
+from app.schemas.common import paginated
 from app.services.ai import identify_species_from_image
 from app.services.yearbook import render_yearbook
 
 router = APIRouter(prefix="/observations", tags=["observations"])
-
-
-from app.core.ratelimit import check_scan_limit
 
 
 class SpeciesNested(BaseModel):
@@ -99,7 +95,7 @@ async def public_feed(
     )
     if bbox:
         try:
-            a, b, c, d = [float(x) for x in bbox.split(",")[:4]]
+            a, b, c, d = (float(x) for x in bbox.split(",")[:4])
             stmt = stmt.where(
                 Observation.latitude.between(min(a, c), max(a, c)),
                 Observation.longitude.between(min(b, d), max(b, d)),

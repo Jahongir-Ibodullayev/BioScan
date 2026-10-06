@@ -59,13 +59,18 @@ filterwarnings = [
 ]
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py39"
 line-length = 110
-exclude = ["venv", "alembic/versions", "__pycache__"]
+exclude = ["venv", "alembic/versions", "__pycache__", "node_modules"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "C4"]
-ignore = ["E501", "E712"]  # Long lines + SQLAlchemy `== True/False`
+ignore = [
+    "E501",  # uzun qatorlar
+    "E712",  # SQLAlchemy `== True/False`
+    "B008",  # FastAPI idiomasi: Depends()/File()/Query() default argument sifatida
+    "UP007", # Python 3.9: runtime `Annotated[X | None, ...]` 3.10'da ishlaydi — Optional[] saqlanadi
+]
 
 [tool.coverage.run]
 source = ["app"]

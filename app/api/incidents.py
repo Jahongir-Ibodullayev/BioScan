@@ -13,7 +13,7 @@ from typing import Optional
 from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, select
 
-from app.api.deps import CurrentUser, DB, OptionalUser
+from app.api.deps import DB, CurrentUser, OptionalUser
 from app.core.config import settings
 from app.models.incident import Incident
 from app.models.user import User
@@ -54,9 +54,12 @@ async def list_incidents(
     page_size: int = Query(50, ge=1, le=500),
 ) -> dict:
     base = select(Incident)
-    if category: base = base.where(Incident.category == category)
-    if severity: base = base.where(Incident.severity == severity)
-    if mine and user: base = base.where(Incident.reporter_id == user.id)
+    if category:
+        base = base.where(Incident.category == category)
+    if severity:
+        base = base.where(Incident.severity == severity)
+    if mine and user:
+        base = base.where(Incident.reporter_id == user.id)
     total = await db.scalar(select(func.count()).select_from(base.subquery())) or 0
 
     stmt = base.order_by(Incident.created_at.desc()).offset((page - 1) * page_size).limit(page_size)

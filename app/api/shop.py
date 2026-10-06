@@ -16,10 +16,10 @@ from decimal import Decimal
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query, status
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlalchemy import delete, func, select
 
-from app.api.deps import CurrentUser, DB
+from app.api.deps import DB, CurrentUser
 from app.models.shop import Cart, CartItem, Category, Order, OrderItem, Product, Review, Wishlist
 from app.schemas.common import paginated
 
@@ -39,8 +39,6 @@ class CategoryOut(BaseModel):
     parent_id: Optional[int] = None
     model_config = {"from_attributes": True}
 
-
-from pydantic import field_validator
 
 # wsrv.nl global CDN — webp + resize + 404 holatida default real rasm.
 # Unsplash ID'larining ~50% o'lik edi → barcha mijoz (webapp, Flutter)

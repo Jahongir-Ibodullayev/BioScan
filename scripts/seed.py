@@ -68,8 +68,10 @@ async def seed_crops(db):
     for item in raw:
         data = item.get("fields", item) if isinstance(item, dict) else item
         # Django Decimal'larni str'ga aylanmasin
-        if "ph_min" in data: data["ph_min"] = Decimal(str(data["ph_min"]))
-        if "ph_max" in data: data["ph_max"] = Decimal(str(data["ph_max"]))
+        if "ph_min" in data:
+            data["ph_min"] = Decimal(str(data["ph_min"]))
+        if "ph_max" in data:
+            data["ph_max"] = Decimal(str(data["ph_max"]))
         # updated_at majburiy bo'lsa server defaultiga tashlaymiz
         data.pop("updated_at", None)
         stmt = pg_insert(Crop.__table__).values(**data)

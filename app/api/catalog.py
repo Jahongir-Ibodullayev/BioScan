@@ -6,7 +6,7 @@ import json
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request, Response, status
-from sqlalchemy import or_, select, func
+from sqlalchemy import func, or_, select
 
 from app.api.deps import DB
 from app.db.redis import cache_get, cache_set

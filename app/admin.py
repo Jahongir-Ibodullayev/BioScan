@@ -15,10 +15,10 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from sqlalchemy import select
-from sqlalchemy.sql import Select
 from sqladmin import Admin, ModelView
 from sqladmin.authentication import AuthenticationBackend
+from sqlalchemy import select
+from sqlalchemy.sql import Select
 from starlette.requests import Request
 
 from app.core.security import create_access_token, decode_token, verify_password
@@ -33,7 +33,6 @@ from app.models.saved import SavedSpecies
 from app.models.shop import Cart, Category, Order, OrderItem, Product, Review, Wishlist
 from app.models.species import Species
 from app.models.user import User
-
 
 # ----------------------------------------------------------------------
 # Role helpers

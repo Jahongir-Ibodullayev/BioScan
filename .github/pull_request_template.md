@@ -9,7 +9,7 @@
 - [ ] 📚 Documentation
 
 ## Checklist
-- [ ] `pytest tests/ -q` — 41/41 yashil
+- [ ] `pytest tests/ -q` — 34/34 yashil
 - [ ] `ruff check .` — xato yo'q
 - [ ] Yangi endpoint uchun test qo'shildi
 - [ ] `.env.example` yangilandi (agar kerak bo'lsa)

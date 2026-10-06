@@ -16,7 +16,9 @@ log = logging.getLogger(__name__)
 def warm_species_cache() -> dict:
     """Top 50 turlarni cache'ga olib qo'yadi (5 daqiqada bir)."""
     import json
+
     from sqlalchemy import select
+
     from app.db.redis import get_redis
     from app.db.session import AsyncSessionLocal
     from app.models.species import Species
@@ -51,10 +53,11 @@ def build_yearbook_pdf(self, user_id: int, year: int) -> dict:
     Natija: media/yearbook/<user_id>_<year>.pdf — fayl yo'li qaytadi.
     """
     from sqlalchemy import select
+
     from app.db.session import AsyncSessionLocal
     from app.models.observation import Observation
-    from app.models.user import User
     from app.models.species import Species
+    from app.models.user import User
     from app.services.yearbook import _render_pdf
 
     async def _gather():
@@ -97,7 +100,7 @@ def build_yearbook_pdf(self, user_id: int, year: int) -> dict:
     try:
         user_name, payload = asyncio.run(_gather())
     except Exception as exc:
-        raise self.retry(exc=exc, countdown=10)
+        raise self.retry(exc=exc, countdown=10) from exc
 
     if user_name is None:
         return {"status": "error", "reason": "user_not_found"}
